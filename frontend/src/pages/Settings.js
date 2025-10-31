@@ -8,6 +8,7 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { ArrowLeft, Settings as SettingsIcon, Volume2, Trash2, AlertTriangle } from 'lucide-react';
 import Header from '../components/Header';
+import { SOUND_OPTIONS } from '@/lib/alarm';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,21 +20,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
-// Sons disponÃ­veis
-// Sons disponíveis
-const SOUND_OPTIONS = [
-  { id: 'bell',    name: '🔔 Sino' },
-  { id: 'chime',   name: '🎶 Melodia' },
-  { id: 'ding',    name: '✨ Ding' },
-  { id: 'gong',    name: '🛕 Gongo' },
-  { id: 'alert',   name: '⚠️ Alerta' },
-  { id: 'soft',    name: '🌙 Suave' },
-  { id: 'ping',    name: '📍 Ping' },
-  { id: 'digital', name: '📟 Digital' },
-  { id: 'nature',  name: '🌿 Natureza' },
-  { id: 'zen',     name: '🧘 Zen' },
-];
 
 
 export default function Settings() {
@@ -232,19 +218,45 @@ function playSoundById(soundId, duration = 2, onend) {
       tone('sine', 1000, 0.00, d*0.6, 0.2);
   }
 
-  setTimeout(finish, d * 1000 + 200);
-}
-
+// playSoundById function removed - now using audio files from SOUND_OPTIONS
 
   function playTestSound() {
     if (playingSound) return;
     setPlayingSound(true);
-    // usa a mesma engine da página (playSoundById) para soar exatamente igual
+    
     try {
-      playSoundById(settings.sound_id, settings.sound_duration || 2, () => {
+      const sound = SOUND_OPTIONS.find(s => s.id === settings.sound_id);
+      if (!sound || !sound.url) {
+        toast.error('Som não encontrado');
         setPlayingSound(false);
+        return;
+      }
+
+      const audio = new Audio(sound.url);
+      audio.volume = 0.7;
+      
+      const duration = Math.min(Math.max(settings.sound_duration || 2, 0.5), 5) * 1000;
+      
+      const cleanup = () => {
+        audio.pause();
+        audio.currentTime = 0;
+        setPlayingSound(false);
+      };
+
+      audio.addEventListener('ended', cleanup);
+      audio.addEventListener('error', () => {
+        toast.error('Erro ao reproduzir som');
+        cleanup();
       });
-    } catch {
+
+      const timeoutId = setTimeout(cleanup, duration);
+      audio.play().catch(() => {
+        toast.error('Erro ao reproduzir som');
+        cleanup();
+      });
+      
+    } catch (err) {
+      console.error('Erro ao tocar som:', err);
       setPlayingSound(false);
     }
   }
@@ -516,4 +528,4 @@ function playSoundById(soundId, duration = 2, onend) {
       </div>
     </div>
   );
-}
+}}

@@ -11,6 +11,8 @@ import { usePageTitle } from "../hooks/usePageTitle";
 import { alarm } from "@/lib/alarm";
 import { alarmSystem } from "@/lib/alarmNotification";
 import { useBackgroundTimer } from "../hooks/useBackgroundTimer";
+import { useApp } from "@/context/AppContext";
+import ModernSealAvatar from "@/components/ModernSealAvatar";
 import {
   DndContext,
   closestCenter,
@@ -182,7 +184,43 @@ const arcPath = (cx, cy, r, startDeg, endDeg) => {
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y}`;
 };
 
+// Helper para gerar cor única diferente das existentes
+const generateUniqueColor = (existingColors) => {
+  const vibrantColors = [
+    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', 
+    '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
+    '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'
+  ];
+  
+  const availableColors = vibrantColors.filter(c => !existingColors.includes(c));
+  
+  if (availableColors.length > 0) {
+    return availableColors[Math.floor(Math.random() * availableColors.length)];
+  }
+  
+  // Se todas as cores estão em uso, gera uma cor aleatória
+  const randomColor = () => {
+    const hue = Math.floor(Math.random() * 360);
+    const saturation = 65 + Math.floor(Math.random() * 25); // 65-90%
+    const lightness = 45 + Math.floor(Math.random() * 15);  // 45-60%
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  };
+  
+  // Garante que a nova cor seja diferente das existentes
+  let newColor;
+  let attempts = 0;
+  do {
+    newColor = randomColor();
+    attempts++;
+  } while (existingColors.includes(newColor) && attempts < 50);
+  
+  return newColor;
+};
+
 function DashboardFixed() {
+  const { me: user, refreshUser } = useApp();
+  const [shopItems, setShopItems] = useState([]);
+  
   // Estados principais
   const [subjects, setSubjects] = useState([]);
   const [currentSubject, setCurrentSubject] = useState(null);
@@ -303,15 +341,17 @@ useEffect(() => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [subjectsRes, statsRes, settingsRes] = await Promise.all([
+        const [subjectsRes, statsRes, settingsRes, shopRes] = await Promise.all([
           api.get('/subjects'),
           api.get('/stats'),
-          api.get('/settings')
+          api.get('/settings'),
+          api.get('/shop/all').catch(() => ({ data: { items: [] } }))
         ]);
 
         const sortedSubjects = (subjectsRes.data || []).sort((a, b) => a.order - b.order);
         setSubjects(sortedSubjects);
         setStats(statsRes.data || {});
+        setShopItems(shopRes.data?.items || []);
 
         if (settingsRes.data) {
           setSettings({
@@ -343,6 +383,7 @@ useEffect(() => {
     };
 
     fetchData();
+    refreshUser(); // Atualiza dados do usuário
   }, []);
 
   // Solicitar permissão de notificação ao montar
@@ -596,16 +637,23 @@ const resetCycle = () => {
     }
 
     try {
+      // Gera cor única diferente das existentes
+      const existingColors = subjects.map(s => s.color);
+      const uniqueColor = generateUniqueColor(existingColors);
+      
       const response = await api.post('/subjects', {
         name: newSubject.name,
-        color: newSubject.color,
+        color: uniqueColor,
         time_goal: newSubject.time_goal
       });
 
       const newSubj = response.data;
       setSubjects([...subjects, newSubj]);
       setLocalProgress(prev => ({ ...prev, [newSubj.id]: 0 }));
-      setNewSubject({ name: '', color: '#3B82F6', time_goal: 300 });
+      
+      // Reset com nova cor única para próxima matéria
+      const nextColor = generateUniqueColor([...existingColors, uniqueColor]);
+      setNewSubject({ name: '', color: nextColor, time_goal: 300 });
       setShowAddSubject(false);
       toast.success('Matéria adicionada!');
     } catch (error) {
@@ -813,9 +861,21 @@ const resetCycle = () => {
               
               {/* Avatar + Título */}
               <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 via-cyan-600 to-blue-600 text-white text-3xl font-bold mb-4 shadow-2xl shadow-cyan-500/30 animate-pulse" style={{animationDuration: '3s'}}>
-                  SL
-                </div>
+                {user && (
+                  <div className="inline-flex items-center justify-center mb-4">
+                    <ModernSealAvatar
+                      user={user}
+                      item={shopItems.find(item => item.id === user.equipped_items?.seal)}
+                      size={80}
+                      className="shadow-2xl"
+                    />
+                  </div>
+                )}
+                {!user && (
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 via-cyan-600 to-blue-600 text-white text-3xl font-bold mb-4 shadow-2xl shadow-cyan-500/30 animate-pulse" style={{animationDuration: '3s'}}>
+                    SL
+                  </div>
+                )}
                 <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">{phaseName}</h1>
                 {currentPhase === 'study' ? (
                   <>
@@ -1162,12 +1222,12 @@ const resetCycle = () => {
         </div>
 
         {/* Card de Quests */}
-        <div className="lg:col-span-3 mb-8">
+        <div className="mb-6">
           <div className="bg-gradient-to-br from-purple-900/30 via-slate-800/50 to-slate-900/60 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-6 shadow-2xl shadow-purple-500/10">
             <div className="flex items-center gap-3 mb-6">
               <Trophy className="w-6 h-6 text-yellow-400" />
               <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-purple-400 to-pink-400">
-                Missões Diárias
+                Missões Semanais
               </h2>
             </div>
 
@@ -1232,9 +1292,9 @@ const resetCycle = () => {
           </div>
         </div>
 
-        {/* Fila de Conteúdos (Embaixo) */}
-        <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6 shadow-xl">
-          <div className="flex justify-between items-center mb-6">
+        {/* Fila de Conteúdos (Otimizado - mais compacto) */}
+        <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-5 shadow-xl">
+          <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-white">Fila de conteúdos</h2>
             <Button
               onClick={() => setShowAddSubject(true)}

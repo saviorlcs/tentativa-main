@@ -1,7 +1,7 @@
 // src/lib/alarm.js
 import { api } from "./api";
 
-// Sons disponíveis - mesmos do Settings
+// Sons disponíveis - Google Actions Library (sem copyright)
 const SOUND_OPTIONS = [
   { 
     id: 'bell', 
@@ -40,12 +40,12 @@ const SOUND_OPTIONS = [
   },
   { 
     id: 'marimba', 
-    name: '🎵 Marimba',
+    name: '🎵 Marimba Suave',
     url: 'https://actions.google.com/sounds/v1/alarms/marimba_flourish.ogg'
   },
   { 
     id: 'mechanical', 
-    name: '⚙️ Mecânico',
+    name: '⚙️ Relógio Mecânico',
     url: 'https://actions.google.com/sounds/v1/alarms/mechanical_clock_ring.ogg'
   },
   { 
@@ -53,7 +53,19 @@ const SOUND_OPTIONS = [
     name: '🚀 Nave Espacial',
     url: 'https://actions.google.com/sounds/v1/alarms/spaceship_alarm.ogg'
   },
+  { 
+    id: 'rooster', 
+    name: '🐓 Galo de Manhã',
+    url: 'https://actions.google.com/sounds/v1/animals/rooster_crow.ogg'
+  },
+  { 
+    id: 'computer', 
+    name: '💻 Alerta de Computador',
+    url: 'https://actions.google.com/sounds/v1/alarms/computerized_alarm_clock.ogg'
+  },
 ];
+
+export { SOUND_OPTIONS };
 
 class Alarm {
   constructor() {
