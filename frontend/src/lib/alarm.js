@@ -5,7 +5,7 @@ import { api } from "./api";
 const SOUND_OPTIONS = [
   { 
     id: 'bell', 
-    name: '🔔 Sino Clássico',
+    name: '🔔 Alarme',
     url: 'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg'
   },
   { 

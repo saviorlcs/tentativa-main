@@ -1221,49 +1221,49 @@ const resetCycle = () => {
           </div>
         </div>
 
-        {/* Card de Quests */}
-        <div className="mb-6">
-          <div className="bg-gradient-to-br from-purple-900/30 via-slate-800/50 to-slate-900/60 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-6 shadow-2xl shadow-purple-500/10">
-            <div className="flex items-center gap-3 mb-6">
-              <Trophy className="w-6 h-6 text-yellow-400" />
-              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-purple-400 to-pink-400">
+        {/* Card de Quests - Grid para melhor uso do espaço */}
+        <div className="lg:col-span-3">
+          <div className="bg-gradient-to-br from-purple-900/30 via-slate-800/50 to-slate-900/60 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-5 shadow-2xl shadow-purple-500/10">
+            <div className="flex items-center gap-3 mb-4">
+              <Trophy className="w-5 h-5 text-yellow-400" />
+              <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-purple-400 to-pink-400">
                 Missões Semanais
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {fourQuests.map((quest) => {
                 const progressPct = quest.target > 0 ? Math.min(100, (quest.progress / quest.target) * 100) : 0;
                 return (
                   <div
                     key={quest.id}
-                    className={`relative overflow-hidden rounded-xl p-4 transition-all duration-300 ${
+                    className={`relative overflow-hidden rounded-xl p-3 transition-all duration-300 ${
                       quest.completed
                         ? 'bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-2 border-green-500/50'
                         : 'bg-slate-800/60 border-2 border-slate-700/50 hover:border-purple-500/50'
                     }`}
                   >
                     {quest.completed && (
-                      <div className="absolute top-2 right-2">
-                        <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                          <span className="text-white font-bold text-lg">✓</span>
+                      <div className="absolute top-1 right-1">
+                        <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">✓</span>
                         </div>
                       </div>
                     )}
                     
-                    <div className="mb-3">
-                      <h3 className={`font-bold text-sm mb-2 ${quest.completed ? 'text-green-300' : 'text-white'}`}>
+                    <div className="mb-2">
+                      <h3 className={`font-bold text-xs mb-1 ${quest.completed ? 'text-green-300' : 'text-white'}`}>
                         {quest.title}
                       </h3>
-                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <div className="flex items-center gap-1 text-xs text-gray-400">
                         <Target className="w-3 h-3" />
                         <span>{quest.progress} / {quest.target}</span>
                       </div>
                     </div>
 
                     {/* Progress bar */}
-                    <div className="mb-3">
-                      <div className="h-2 rounded-full bg-slate-700/50 overflow-hidden">
+                    <div className="mb-2">
+                      <div className="h-1.5 rounded-full bg-slate-700/50 overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
                             quest.completed
@@ -1277,12 +1277,12 @@ const resetCycle = () => {
 
                     {/* Rewards */}
                     <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <span className="text-yellow-400 font-bold">🪙 {quest.coins_reward}</span>
                         <span className="text-purple-400 font-bold">⭐ {quest.xp_reward}</span>
                       </div>
                       {quest.completed && (
-                        <span className="text-green-400 font-bold text-xs">Completa!</span>
+                        <span className="text-green-400 font-bold text-xs">✓</span>
                       )}
                     </div>
                   </div>
@@ -1295,13 +1295,13 @@ const resetCycle = () => {
         {/* Fila de Conteúdos (Otimizado - mais compacto) */}
         <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-5 shadow-xl">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-white">Fila de conteúdos</h2>
+            <h2 className="text-base font-bold text-white">Fila de conteúdos</h2>
             <Button
               onClick={() => setShowAddSubject(true)}
-              className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg px-4"
+              className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg px-3 py-1.5 text-sm\"
               size="sm"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 mr-1" />
               Adicionar
             </Button>
           </div>
@@ -1505,3 +1505,5 @@ const resetCycle = () => {
 
 }
 export default DashboardFixed;
+     
+       

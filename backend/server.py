@@ -1715,13 +1715,22 @@ async def groups_presence(group_id: str, request: Request):
     return out
 
 def blocks_pipeline(match_extra):
+    """
+    Pipeline para contar blocos completos (não pulados) baseado na duração configurada.
+    Agora filtra apenas sessões completas (completed=True, skipped=False).
+    """
     return [
-        {"$match": {"completed": True, **match_extra}},
-        {"$project": {"user_id":1, "duration": {"$ifNull":["$duration",0]}}},
-        {"$group": {"_id":"$user_id", "minutes": {"$sum":"$duration"}}},
-        # mantém "blocks" só para exibir, mas sem filtrar fora do ranking
-        {"$project": {"_id":0, "user_id":"$_id", "minutes":1, "blocks":{"$floor":{"$divide":["$minutes",50]}}}},
-        {"$sort": {"minutes": -1, "blocks": -1}},  # primeiro por minutos
+        # Filtra apenas sessões completas e NÃO puladas
+        {"$match": {"completed": True, "skipped": {"$ne": True}, **match_extra}},
+        {"$project": {"user_id": 1, "duration": {"$ifNull": ["$duration", 0]}}},
+        # Agrupa por usuário e soma minutos e conta blocos (cada sessão completa = 1 bloco)
+        {"$group": {
+            "_id": "$user_id", 
+            "minutes": {"$sum": "$duration"},
+            "blocks": {"$sum": 1}  # cada sessão completa conta como 1 bloco
+        }},
+        {"$project": {"_id": 0, "user_id": "$_id", "minutes": 1, "blocks": 1}},
+        {"$sort": {"blocks": -1, "minutes": -1}},  # ordena por blocos primeiro, depois minutos
         {"$limit": 100}
     ]
 
@@ -2367,10 +2376,36 @@ async def create_subject(input: SubjectCreate, request: Request, session_token: 
     subjects = await db.subjects.find({"user_id": user.id}).to_list(1000)
     max_order = max([s.get("order", 0) for s in subjects], default=-1)
     
+    # Gerar cor única e aleatória diferente das existentes
+    existing_colors = {s.get("color") for s in subjects if s.get("color")}
+    
+    # Paleta de cores vibrantes para matérias
+    color_palette = [
+        "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8",
+        "#F7DC6F", "#BB8FCE", "#85C1E2", "#F8B88B", "#FAD7A0",
+        "#A569BD", "#5DADE2", "#48C9B0", "#F4D03F", "#EB984E",
+        "#EC7063", "#AF7AC5", "#5499C7", "#52BE80", "#F39C12",
+        "#E74C3C", "#9B59B6", "#3498DB", "#1ABC9C", "#F39C12"
+    ]
+    
+    # Encontrar cor disponível
+    available_colors = [c for c in color_palette if c not in existing_colors]
+    
+    if available_colors:
+        # Usa cor aleatória da paleta que ainda não foi usada
+        selected_color = available_colors[random.randint(0, len(available_colors) - 1)]
+    else:
+        # Se todas as cores foram usadas, gerar cor RGB aleatória
+        selected_color = "#{:02x}{:02x}{:02x}".format(
+            random.randint(100, 255),
+            random.randint(100, 255),
+            random.randint(100, 255)
+        )
+    
     subject = Subject(
         user_id=user.id,
         name=input.name,
-        color=input.color,
+        color=selected_color,  # Usa cor gerada ao invés da fornecida
         time_goal=input.time_goal,
         order=max_order + 1
     )
@@ -4213,7 +4248,7 @@ async def complete_habit(habit_id: str, request: Request, session_token: Optiona
 
 @api_router.delete("/habits/{habit_id}/complete")
 async def uncomplete_habit(habit_id: str, request: Request, session_token: Optional[str] = Cookie(None)):
-    """Remove a marcação de conclusão de hoje"""
+    """Remove a marcação de conclusão de hoje e desconsiderar frequência"""
     user = await get_current_user(request, session_token)
     
     habit = await db.habits.find_one({"id": habit_id, "user_id": user.id}, {"_id": 0})
@@ -4223,18 +4258,34 @@ async def uncomplete_habit(habit_id: str, request: Request, session_token: Optio
     today = datetime.now(timezone.utc).date().isoformat()
     completions = [c for c in habit.get("completions", []) if c.get("date") != today]
     
-    # Recalcula streaks
+    # Recalcula streaks APENAS com base nos dias que efetivamente foram completados
+    # Ignorando completamente a frequência configurada
     dates = sorted([c["date"] for c in completions], reverse=True)
     current_streak = 0
-    check_date = datetime.now(timezone.utc).date()
+    longest_streak = 0
+    temp_streak = 0
     
+    # Calcula a streak atual (dias consecutivos de conclusão, independente da frequência)
+    check_date = datetime.now(timezone.utc).date()
     for date_str in dates:
         comp_date = datetime.fromisoformat(date_str).date()
-        if comp_date == check_date:
+        if comp_date == check_date or comp_date == check_date - timedelta(days=1):
             current_streak += 1
-            check_date -= timedelta(days=1)
-        elif comp_date < check_date:
+            check_date = comp_date - timedelta(days=1)
+        else:
             break
+    
+    # Calcula a maior streak de todos os tempos
+    if dates:
+        prev_date = None
+        for date_str in dates:
+            comp_date = datetime.fromisoformat(date_str).date()
+            if prev_date is None or (prev_date - comp_date).days == 1:
+                temp_streak += 1
+                longest_streak = max(longest_streak, temp_streak)
+            else:
+                temp_streak = 1
+            prev_date = comp_date
     
     await db.habits.update_one(
         {"id": habit_id, "user_id": user.id},
@@ -4242,6 +4293,7 @@ async def uncomplete_habit(habit_id: str, request: Request, session_token: Optio
             "$set": {
                 "completions": completions,
                 "current_streak": current_streak,
+                "longest_streak": max(longest_streak, habit.get("longest_streak", 0)),
                 "total_completions": len(completions)
             }
         }
