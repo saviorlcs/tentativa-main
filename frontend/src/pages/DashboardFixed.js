@@ -37,7 +37,17 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
 
-// Componente de Item Arrastável
+// Componente Bar para progresso
+function Bar({ value, className = "" }) {
+  const v = Math.max(0, Math.min(100, Number(value) || 0));
+  return (
+    <div className={`h-2 rounded-full bg-slate-700/50 overflow-hidden ${className}`}>
+      <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-cyan-500 transition-[width] duration-500" style={{ width: `${v}%` }} />
+    </div>
+  );
+}
+
+// Componente de Item Arrastável com design moderno
 function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, progress }) {
   const {
     attributes,
@@ -67,65 +77,81 @@ function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, pro
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative bg-slate-800/60 border-2 rounded-xl p-4 transition-all duration-300 ${
+      className={`group relative backdrop-blur transition-all duration-300 cursor-grab ${
         isActive
-          ? 'border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/20'
-          : 'border-slate-700 hover:border-slate-600'
-      }`}
+          ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 shadow-lg shadow-cyan-500/10'
+          : 'bg-slate-700/30 hover:bg-slate-700/50 border border-transparent'
+      } rounded-xl p-3`}
     >
       <div className="flex items-center gap-3">
         {/* Drag Handle */}
         <button
           {...listeners}
           {...attributes}
-          className="cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300 transition-colors"
+          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-200 transition-colors"
         >
-          <GripVertical className="w-5 h-5" />
+          <GripVertical className="w-4 h-4" />
         </button>
+
+        {/* Color Indicator */}
+        <div
+          className={`w-3 h-3 rounded-full transition-all duration-300 ${isActive ? 'scale-125' : ''}`}
+          style={{ 
+            backgroundColor: subject.color,
+            boxShadow: isActive ? `0 0 12px ${subject.color}` : 'none'
+          }}
+        />
 
         {/* Subject Content */}
         <div className="flex-1 cursor-pointer" onClick={onClick}>
-          <div className="flex items-center gap-3 mb-3">
-            <div
-              className="w-4 h-4 rounded-full shadow-lg"
-              style={{ backgroundColor: subject.color }}
-            />
-            <span className="font-semibold text-lg text-white">{subject.name}</span>
-            <span className="text-sm text-gray-400 ml-auto">{formatTime(subject.time_goal)}</span>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`font-semibold text-sm ${isActive ? 'text-white' : 'text-gray-300'} transition-all`}>
+              {subject.name}
+            </span>
+            <span className={`text-xs ${isActive ? 'text-cyan-300 font-semibold' : 'text-gray-400'}`}>
+              {formatTime(subject.time_goal)}
+            </span>
           </div>
 
           {/* Progress Bar */}
-          <div className="relative w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
-            <div
-              className="h-full transition-all duration-500 rounded-full"
-              style={{
-                width: `${progress}%`,
-                backgroundColor: subject.color,
-              }}
-            />
-          </div>
+          <Bar value={progress} />
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
+        {/* Action Buttons - Sempre visíveis */}
+        <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+          >
+            <Play className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 text-gray-400 hover:bg-slate-600/50 hover:text-gray-300"
             onClick={(e) => {
               e.stopPropagation();
               onEdit(subject);
             }}
-            className="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition-colors"
           >
-            <Edit2 className="w-4 h-4 text-gray-300" />
-          </button>
-          <button
+            <Edit2 className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 text-gray-400 hover:bg-red-500/10 hover:text-red-400"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(subject.id);
             }}
-            className="p-2 rounded-lg bg-slate-700/50 hover:bg-red-500/20 transition-colors"
           >
-            <Trash2 className="w-4 h-4 text-gray-300 hover:text-red-400" />
-          </button>
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
         </div>
       </div>
     </div>
@@ -697,14 +723,14 @@ const resetCycle = () => {
           
           {/* Coluna Central - Timer (2 colunas) */}
           <div className="lg:col-span-2">
-            <div className="rounded-3xl p-8 bg-slate-800/50 border border-slate-700/50 shadow-2xl backdrop-blur">
+            <div className="rounded-3xl p-8 bg-gradient-to-br from-slate-800/60 via-slate-800/50 to-slate-900/60 border border-slate-700/50 shadow-2xl backdrop-blur-xl">
               
               {/* Avatar + Título */}
               <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white text-3xl font-bold mb-4 shadow-lg">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-cyan-500 via-cyan-600 to-blue-600 text-white text-3xl font-bold mb-4 shadow-2xl shadow-cyan-500/30 animate-pulse" style={{animationDuration: '3s'}}>
                   SL
                 </div>
-                <h1 className="text-4xl font-bold mb-2">{phaseName}</h1>
+                <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">{phaseName}</h1>
                 {currentPhase === 'study' ? (
                   <>
                     <p className="text-xl text-purple-400 font-semibold mb-2">
@@ -721,8 +747,9 @@ const resetCycle = () => {
                       : 'Aproveite para descansar um pouco!'}
                   </p>
                 )}
-                <div className="mt-3 inline-block px-4 py-1 rounded-full text-xs font-semibold" style={{
-                  backgroundColor: `${phaseColor}33`,
+                <div className="mt-3 inline-block px-4 py-1 rounded-full text-xs font-semibold border" style={{
+                  backgroundColor: `${phaseColor}15`,
+                  borderColor: `${phaseColor}50`,
                   color: phaseColor
                 }}>
                   {studyBlocksCount} blocos completados • Próxima pausa longa em {nextLongBreakIn} blocos
@@ -731,11 +758,14 @@ const resetCycle = () => {
 
               {/* Timer Display */}
               <div className="text-center mb-8">
-                <div className="text-9xl font-bold mb-2 tracking-tight font-mono transition-colors duration-300"
-                     style={{ color: phaseColor }}>
+                <div className="text-9xl font-bold mb-2 tracking-tight font-mono transition-colors duration-300 drop-shadow-2xl"
+                     style={{ 
+                       color: phaseColor,
+                       textShadow: `0 0 40px ${phaseColor}60`
+                     }}>
                   {formatTime(timeLeft)}
                 </div>
-                <p className="text-gray-400 text-lg">
+                <p className="text-gray-400 text-lg font-medium">
                   {currentPhase === 'study' ? `${settings.study_duration} min` : 
                    currentPhase === 'long_break' ? `${settings.break_duration * 3} min` : 
                    `${settings.break_duration} min`}
@@ -746,7 +776,7 @@ const resetCycle = () => {
               <div className="grid grid-cols-4 gap-3 mb-8">
                 <Button
                   onClick={toggleTimer}
-                  className="h-16 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  className="h-16 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-bold text-lg rounded-2xl shadow-2xl shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105"
                   data-testid="start-pause-btn"
                 >
                   {isRunning ? (
@@ -765,18 +795,17 @@ const resetCycle = () => {
                 <Button
                   onClick={skipBlock}
                   disabled={currentPhase === 'study' && !currentSubject}
-                  className="h-16 bg-slate-700/80 hover:bg-slate-600/80 text-white font-semibold rounded-2xl"
+                  className="h-16 bg-slate-700/80 hover:bg-slate-600/80 disabled:opacity-40 text-white font-semibold rounded-2xl transition-all duration-300 hover:scale-105"
                   data-testid="skip-btn"
                 >
                   <SkipForward className="w-5 h-5 mr-2" />
-                  {currentPhase === 'study' ? 'Pular bloco' : 'Pular pausa'}
+                  {currentPhase === 'study' ? 'Pular' : 'Pular pausa'}
                 </Button>
-
 
                 <Button
                   onClick={previousBlock}
                   disabled={blockHistory.length === 0 || isRunning}
-                  className="h-16 bg-slate-700/80 hover:bg-slate-600/80 text-white font-semibold rounded-2xl"
+                  className="h-16 bg-slate-700/80 hover:bg-slate-600/80 disabled:opacity-40 text-white font-semibold rounded-2xl transition-all duration-300 hover:scale-105"
                   data-testid="previous-btn"
                 >
                   <SkipBack className="w-5 h-5 mr-2" />
@@ -784,68 +813,60 @@ const resetCycle = () => {
                 </Button>
 
                 <div className="flex flex-wrap gap-2">
-   <DropdownMenu>
-   <DropdownMenuTrigger asChild>
-     <Button
-       className="h-16 bg-slate-700/80 hover:bg-slate-600/80 text-white font-semibold rounded-2xl"
-       data-testid="reset-menu-btn"
-     >
-       <RotateCcw className="w-5 h-5 mr-2" />
-       Resetar
-     </Button>
-   </DropdownMenuTrigger>
-   <DropdownMenuContent align="end" className="w-56">
-     <DropdownMenuLabel>Opções de reset</DropdownMenuLabel>
-     <DropdownMenuSeparator />
-     <DropdownMenuItem
-       onSelect={(e) => { e.preventDefault(); resetCurrentBlock(); }}
-     >
-       Resetar bloco atual
-    </DropdownMenuItem>
-    <DropdownMenuItem
-       disabled={!currentSubject}
-       onSelect={(e) => { e.preventDefault(); resetCurrentSubject(); }}
-     >
-       Resetar matéria atual
-     </DropdownMenuItem>
-     <DropdownMenuSeparator />
-     <DropdownMenuItem
-       className="text-red-500 focus:text-red-500"
-       onSelect={(e) => { e.preventDefault(); resetCycle(); }}
-     >
-       Resetar ciclo
-     </DropdownMenuItem>
-   </DropdownMenuContent>
- </DropdownMenu>
- </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        className="h-16 w-full bg-slate-700/80 hover:bg-slate-600/80 text-white font-semibold rounded-2xl transition-all duration-300 hover:scale-105"
+                        data-testid="reset-menu-btn"
+                      >
+                        <RotateCcw className="w-5 h-5 mr-2" />
+                        Reset
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 bg-slate-800 border-slate-700">
+                      <DropdownMenuLabel className="text-white">Opções de reset</DropdownMenuLabel>
+                      <DropdownMenuSeparator className="bg-slate-700" />
+                      <DropdownMenuItem
+                        className="text-gray-300 focus:bg-slate-700 focus:text-white"
+                        onSelect={(e) => { e.preventDefault(); resetCurrentBlock(); }}
+                      >
+                        Resetar bloco atual
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!currentSubject}
+                        className="text-gray-300 focus:bg-slate-700 focus:text-white"
+                        onSelect={(e) => { e.preventDefault(); resetCurrentSubject(); }}
+                      >
+                        Resetar matéria atual
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-slate-700" />
+                      <DropdownMenuItem
+                        className="text-red-400 focus:bg-red-500/20 focus:text-red-400"
+                        onSelect={(e) => { e.preventDefault(); resetCycle(); }}
+                      >
+                        Resetar ciclo
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
               {/* Barras de Progresso */}
-              <div className="space-y-6 bg-slate-900/30 rounded-2xl p-6">
+              <div className="space-y-6 bg-gradient-to-br from-slate-900/40 to-slate-800/40 rounded-2xl p-6 backdrop-blur border border-slate-700/30">
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-300">Progresso do conteúdo atual</span>
-                    <span className="text-cyan-400 font-bold">{currentSubjectProgress.toFixed(0)}%</span>
+                    <span className="text-gray-300 font-medium">Progresso do conteúdo atual</span>
+                    <span className="text-cyan-400 font-bold text-base">{currentSubjectProgress.toFixed(0)}%</span>
                   </div>
-                  <div className="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-cyan-400 to-cyan-500 transition-all duration-500 rounded-full"
-                      style={{ width: `${currentSubjectProgress}%` }}
-                    />
-                  </div>
+                  <Bar value={currentSubjectProgress} />
                 </div>
 
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-300">Progresso do ciclo</span>
-                    <span className="text-cyan-400 font-bold">{cycleProgress.toFixed(0)}%</span>
+                    <span className="text-gray-300 font-medium">Progresso do ciclo</span>
+                    <span className="text-cyan-400 font-bold text-base">{cycleProgress.toFixed(0)}%</span>
                   </div>
-                  <div className="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-cyan-400 to-cyan-500 transition-all duration-500 rounded-full"
-                      style={{ width: `${cycleProgress}%` }}
-                    />
-                  </div>
+                  <Bar value={cycleProgress} />
                 </div>
               </div>
             </div>
@@ -853,11 +874,14 @@ const resetCycle = () => {
 
           {/* Coluna Direita - Mapa do Ciclo */}
           <div className="lg:col-span-1">
-            <div className="rounded-3xl p-6 bg-slate-800/50 border border-slate-700/50 shadow-xl backdrop-blur">
-              <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                Mapa do Ciclo
-              </h2>
-              <p className="text-sm text-gray-400 mb-6">Distribuição interativa das matérias</p>
+            <div className="bg-gradient-to-br from-slate-800/70 via-slate-800/60 to-slate-900/70 backdrop-blur-xl border border-cyan-500/30 rounded-2xl p-6 shadow-2xl shadow-cyan-500/20 hover:shadow-cyan-500/30 transition-all duration-300">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-2 animate-pulse" style={{animationDuration: '3s'}}>
+                  Mapa do Ciclo
+                </h2>
+                <p className="text-sm text-gray-300 font-medium">Distribuição interativa das matérias</p>
+                <div className="mt-2 h-0.5 w-20 mx-auto bg-gradient-to-r from-transparent via-cyan-400 to-transparent"></div>
+              </div>
 
               {subjects.length === 0 ? (
                 <div className="flex items-center justify-center h-80">
@@ -865,184 +889,183 @@ const resetCycle = () => {
                 </div>
               ) : (
                 <div className="flex flex-col items-center">
-                  {/* SVG do Mapa Circular MELHORADO */}
-                  <svg width="300" height="300" viewBox="0 0 300 300" className="mb-6">
+                  {/* Container centralizado com padding proporcional */}
+                  <div className="relative w-full aspect-square max-w-md mx-auto mb-6 flex items-center justify-center">
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
                     <defs>
-                      {/* Definir gradientes para cada matéria */}
-                      {subjects.map((subject, index) => {
-                        const totalGoal = subjects.reduce((sum, s) => sum + (s.time_goal || 0), 0);
-                        const percentage = totalGoal > 0 ? ((subject.time_goal || 0) / totalGoal) * 100 : 0;
+                      {(() => {
+                        let offset = 0;
+                        const GAP_DEGREES = 0.15;
+                        const totalGoal = subjects.reduce((s, x) => s + (x.time_goal || 0), 0);
+                        
+                        return subjects.map(subject => {
+                          const percentage = totalGoal > 0 ? ((subject.time_goal || 0) / totalGoal) * 100 : 100 / subjects.length;
+                          const startDegRaw = -90 + (offset * 360) / 100;
+                          const sweepRaw = (percentage * 360) / 100;
+                          const startDeg = startDegRaw + GAP_DEGREES;
+                          const endDeg = startDegRaw + sweepRaw - GAP_DEGREES;
+                          offset += percentage;
 
-                        let startDeg = -90;
-                        for (let i = 0; i < index; i++) {
-                          const prevPercentage = totalGoal > 0
-                            ? ((subjects[i].time_goal || 0) / totalGoal) * 100
-                            : 0;
-                          startDeg += (prevPercentage / 100) * 360;
-                        }
-                        const endDeg = startDeg + (percentage / 100) * 360;
-
-                        return (
-                          <linearGradient key={subject.id} id={`gradient-${subject.id}`} gradientTransform="rotate(90)">
-                            <stop offset="0%" stopColor={subject.color} stopOpacity="0.8" />
-                            <stop offset="100%" stopColor={subject.color} stopOpacity="1" />
-                          </linearGradient>
-                        );
-                      })}
+                          const safeId = subject.id ?? `subj-${Math.random().toString(36).slice(2)}`;
+                          const id = `arc-${safeId}`;
+                          const d = arcPath(100, 100, 70, startDeg, endDeg);
+                          return <path key={id} id={id} d={d} pathLength="100" />;
+                        });
+                      })()}
                     </defs>
 
-                    {/* Renderizar arcos com strokeWidth MAIOR */}
-                    {subjects.map((subject, index) => {
-                      const totalGoal = subjects.reduce((sum, s) => sum + (s.time_goal || 0), 0);
-                      const percentage = totalGoal > 0 ? ((subject.time_goal || 0) / totalGoal) * 100 : 0;
-
-                      let startDeg = -90;
-                      for (let i = 0; i < index; i++) {
-                        const prevPercentage = totalGoal > 0
-                          ? ((subjects[i].time_goal || 0) / totalGoal) * 100
-                          : 0;
-                        startDeg += (prevPercentage / 100) * 360;
-                      }
-                      const endDeg = startDeg + (percentage / 100) * 360;
-
-                      const subjectProgress = getSubjectProgress(subject.id);
-                      const progressEndDeg = startDeg + (percentage / 100) * 360 * (subjectProgress / 100);
-
-                      const isSelected = currentSubject?.id === subject.id;
-                      const pathId = `path-${subject.id}`;
-
-                      return (
-                        <g key={subject.id}>
-                          {/* Define path for textPath */}
-                          <defs>
-                            <path
-                              id={pathId}
-                              d={arcPath(150, 150, 110, startDeg, endDeg)}
-                              fill="none"
-                            />
-                          </defs>
-
-                          {/* Arco de fundo (planejado) */}
-                          <path
-                            d={arcPath(150, 150, 120, startDeg, endDeg)}
+                    {/* Arcos coloridos GROSSOS com bordas retas */}
+                    {(() => {
+                      let offset = 0;
+                      const totalGoal = subjects.reduce((s, x) => s + (x.time_goal || 0), 0);
+                      
+                      return subjects.map((subject) => {
+                        const percentage = totalGoal > 0 ? ((subject.time_goal || 0) / totalGoal) * 100 : 100 / subjects.length;
+                        offset += percentage;
+                        const id = `arc-${subject.id}`;
+                        const isActive = currentSubject?.id === subject.id;
+                        
+                        return (
+                          <use
+                            key={`stroke-${id}`}
+                            href={`#${id}`}
+                            stroke={subject.color}
+                            strokeWidth={isActive ? 54 : 50}
                             fill="none"
-                            stroke={`url(#gradient-${subject.id})`}
-                            strokeWidth="45"
-                            opacity="0.3"
-                            className="cursor-pointer transition-opacity hover:opacity-50"
+                            pathLength="100"
                             onClick={() => setCurrentSubject(subject)}
+                            style={{
+                              cursor: 'pointer',
+                              filter: isActive ? `drop-shadow(0 0 12px ${subject.color}CC)` : 'none',
+                              strokeLinecap: 'butt',
+                              strokeLinejoin: 'miter',
+                              transition: 'stroke-width 200ms ease, filter 200ms ease'
+                            }}
                           />
+                        );
+                      });
+                    })()}
 
-                          {/* Arco de progresso (estudado) */}
-                          {subjectProgress > 0 && (
-                            <path
-                              d={arcPath(150, 150, 120, startDeg, progressEndDeg)}
-                              fill="none"
-                              stroke={`url(#gradient-${subject.id})`}
-                              strokeWidth="45"
-                              opacity="1"
-                              className="cursor-pointer drop-shadow-lg"
+                    {/* Textos curvados DENTRO dos arcos */}
+                    {(() => {
+                      let offset = 0;
+                      const GAP_DEGREES = 0.15;
+                      const totalGoal = subjects.reduce((s, x) => s + (x.time_goal || 0), 0);
+                      
+                      return subjects.map((subject) => {
+                        const percentage = totalGoal > 0 ? ((subject.time_goal || 0) / totalGoal) * 100 : 100 / subjects.length;
+                        const id = `arc-${subject.id}`;
+                        const isActive = currentSubject?.id === subject.id;
+                        
+                        const startDegRaw = -90 + (offset * 360) / 100;
+                        const sweepRaw = (percentage * 360) / 100;
+                        const startDeg = startDegRaw + GAP_DEGREES;
+                        const endDeg = startDegRaw + sweepRaw - GAP_DEGREES;
+                        offset += percentage;
+
+                        const actualSweep = endDeg - startDeg;
+                        if (actualSweep < 20) return null;
+
+                        return (
+                          <text key={`text-${id}`} fill="#fff">
+                            <textPath
+                              href={`#${id}`}
+                              startOffset="50%"
+                              textAnchor="middle"
                               onClick={() => setCurrentSubject(subject)}
-                            />
-                          )}
-
-                          {/* Highlight se selecionado */}
-                          {isSelected && (
-                            <path
-                              d={arcPath(150, 150, 120, startDeg, endDeg)}
-                              fill="none"
-                              stroke="#fff"
-                              strokeWidth="3"
-                              opacity="0.8"
-                              className="animate-pulse pointer-events-none"
-                            />
-                          )}
-
-                          {/* Texto curvado no arco */}
-                          {percentage > 5 && (
-                            <text className="pointer-events-none select-none">
-                              <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
-                                <tspan
-                                  fill="white"
-                                  fontSize={isSelected ? "14" : "13"}
-                                  fontWeight={isSelected ? "800" : "700"}
-                                  className="drop-shadow"
-                                >
-                                  {subject.name.length > 12 ? subject.name.substring(0, 12) + '...' : subject.name}
-                                </tspan>
-                              </textPath>
-                            </text>
-                          )}
-                        </g>
-                      );
-                    })}
-
-                    {/* Círculo central */}
-                    <rect
-                      x="90"
-                      y="90"
-                      width="120"
-                      height="120"
-                      rx="20"
-                      fill="rgba(15, 23, 42, 0.95)"
-                      stroke="rgba(255,255,255,0.1)"
-                      strokeWidth="2"
-                    />
-
-                    {/* Texto central */}
-                    <text x="150" y="130" textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize="12" fontWeight="600">
-                      MAPA DO
-                    </text>
-                    <text x="150" y="148" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">
-                      CICLO
-                    </text>
-                    <text x="150" y="165" textAnchor="middle" fill="rgba(34, 211, 238, 1)" fontSize="10" fontWeight="600">
-                      {currentSubject?.name.substring(0, 12) || ''}
-                    </text>
-                    <text x="150" y="180" textAnchor="middle" fill="rgba(156, 163, 175, 1)" fontSize="9">
-                      {currentSubject ? formatMinutes(currentSubject.time_goal) : ''}
-                    </text>
+                              style={{ 
+                                fontSize: isActive ? 8 : 7.5,
+                                fontWeight: 900, 
+                                cursor: 'pointer',
+                                letterSpacing: '0.02em',
+                                transition: 'font-size 200ms ease',
+                                textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+                              }}
+                            >
+                              {subject.name}
+                            </textPath>
+                          </text>
+                        );
+                      });
+                    })()}
                   </svg>
 
+                  {/* Centro com gradiente */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="relative">
+                      <div className="absolute inset-0 -m-10 rounded-full bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 animate-pulse" style={{animationDuration: '3s'}} />
+                      <div className="absolute inset-0 -m-12 rounded-full bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-cyan-500/5 animate-pulse" style={{animationDuration: '4s', animationDelay: '1s'}} />
+                      
+                      <div className="relative text-center bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md rounded-full px-7 py-5 border-2 border-cyan-500/30 shadow-2xl shadow-cyan-500/20">
+                        <p className="text-xs text-cyan-300 font-bold mb-1 tracking-wider uppercase">Mapa do</p>
+                        <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 tracking-tight">CICLO</p>
+                        {currentSubject && (
+                          <>
+                            <div className="mt-2 h-px w-16 mx-auto bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent"></div>
+                            <p className="text-xs font-semibold mt-2 max-w-[120px] truncate" style={{color: currentSubject.color}}>
+                              {currentSubject.name}
+                            </p>
+                            <p className="text-[10px] text-gray-500 mt-1">
+                              {formatMinutes(currentSubject.time_goal)}
+                            </p>
+                          </>
+                        )}
+                        {!currentSubject && (
+                          <p className="text-[10px] text-gray-500 mt-2">Clique em uma matéria</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                   {/* Lista de Matérias do Ciclo */}
-                  <div className="w-full">
-                    <h3 className="text-lg font-bold mb-4 text-cyan-400">Matérias do Ciclo</h3>
+                  <div className="w-full space-y-3 mt-6">
+                    <h4 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 mb-4 flex items-center gap-2">
+                      <span className="w-1 h-4 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full"></span>
+                      Matérias do Ciclo
+                    </h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {subjects.map((subject, index) => (
-                        <div
-                          key={subject.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg transition-all cursor-pointer ${
-                            currentSubject?.id === subject.id
-                              ? 'bg-cyan-500/20 border border-cyan-500/50'
-                              : 'bg-slate-700/30 hover:bg-slate-700/50'
-                          }`}
-                          onClick={() => setCurrentSubject(subject)}
-                        >
+                      {subjects.map((subject, index) => {
+                        const isActive = currentSubject?.id === subject.id;
+                        return (
                           <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: subject.color }}
-                          />
-                          <span className="text-sm font-medium flex-1">
-                            {index + 1}. {subject.name}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            {formatMinutes(subject.time_goal)} planejado
-                          </span>
-                        </div>
-                      ))}
+                            key={subject.id}
+                            onClick={() => setCurrentSubject(subject)}
+                            className={`flex items-center justify-between text-sm p-3 rounded-xl cursor-pointer transition-all duration-300 ${
+                              isActive 
+                                ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 shadow-lg shadow-cyan-500/10' 
+                                : 'hover:bg-slate-700/30 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div 
+                                className={`w-3 h-3 rounded-full transition-all duration-300 ${isActive ? 'scale-125' : ''}`} 
+                                style={{ 
+                                  backgroundColor: subject.color,
+                                  boxShadow: isActive ? `0 0 12px ${subject.color}` : 'none'
+                                }} 
+                              />
+                              <span className={`${isActive ? 'text-white font-bold' : 'text-gray-300'} transition-all`}>
+                                {index + 1}. {subject.name}
+                              </span>
+                            </div>
+                            <span className={`text-xs ${isActive ? 'text-cyan-300 font-semibold' : 'text-gray-400'}`}>
+                              {formatMinutes(subject.time_goal)} planejado
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Totais */}
-                    <div className="mt-6 pt-4 border-t border-slate-700/50 space-y-2">
-                      <div className="flex justify-between text-sm">
+                    <div className="pt-4 mt-4 text-right text-xs border-t border-slate-700/50 space-y-2">
+                      <div className="flex justify-between items-center">
                         <span className="text-gray-400">Tempo total do ciclo:</span>
-                        <span className="text-cyan-400 font-bold">
-                          {formatMinutes(subjects.reduce((sum, s) => sum + (s.time_goal || 0), 0))}
-                        </span>
+                        <b className="text-cyan-300 text-sm">{formatMinutes(subjects.reduce((sum, s) => sum + (s.time_goal || 0), 0))}</b>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between items-center">
                         <span className="text-gray-400">Tempo de estudo:</span>
-                        <span className="text-cyan-400 font-bold">{formatMinutes(totalStudied)}</span>
+                        <b className="text-emerald-300 text-sm">{formatMinutes(totalStudied)}</b>
                       </div>
                     </div>
                   </div>
@@ -1053,14 +1076,15 @@ const resetCycle = () => {
         </div>
 
         {/* Fila de Conteúdos (Embaixo) */}
-        <div className="rounded-3xl p-6 bg-slate-800/50 border border-slate-700/50 shadow-xl backdrop-blur">
+        <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6 shadow-xl">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-cyan-400">Fila de conteúdos</h2>
+            <h2 className="text-lg font-bold text-white">Fila de conteúdos</h2>
             <Button
               onClick={() => setShowAddSubject(true)}
-              className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-semibold rounded-xl px-6"
+              className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg px-4"
+              size="sm"
             >
-              <Plus className="w-5 h-5 mr-2" />
+              <Plus className="w-4 h-4 mr-2" />
               Adicionar
             </Button>
           </div>
@@ -1078,7 +1102,7 @@ const resetCycle = () => {
               onDragEnd={handleDragEnd}
             >
               <SortableContext items={subjects.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-2">
                   {subjects.map(subject => (
                     <SortableSubjectItem
                       key={subject.id}
@@ -1113,44 +1137,46 @@ const resetCycle = () => {
 
       {/* Dialog Adicionar Matéria */}
       <Dialog open={showAddSubject} onOpenChange={setShowAddSubject}>
-        <DialogContent className="bg-slate-800 border-slate-700">
+        <DialogContent className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white">Nova Matéria</DialogTitle>
+            <DialogTitle className="text-white text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              Nova Matéria
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
             <div>
-              <Label htmlFor="subject-name" className="text-gray-300">Nome da Matéria</Label>
+              <Label htmlFor="subject-name" className="text-gray-300 font-medium">Nome da Matéria</Label>
               <Input
                 id="subject-name"
                 value={newSubject.name}
                 onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
                 placeholder="Ex: Matemática"
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-slate-700/50 border-slate-600 text-white mt-1 focus:border-cyan-500 transition-colors"
               />
             </div>
 
             <div>
-              <Label htmlFor="subject-color" className="text-gray-300">Cor</Label>
-              <div className="flex gap-2">
+              <Label htmlFor="subject-color" className="text-gray-300 font-medium">Cor</Label>
+              <div className="flex gap-2 mt-1">
                 <Input
                   id="subject-color"
                   type="color"
                   value={newSubject.color}
                   onChange={(e) => setNewSubject({ ...newSubject, color: e.target.value })}
-                  className="w-20 h-10"
+                  className="w-20 h-10 cursor-pointer"
                 />
                 <Input
                   value={newSubject.color}
                   onChange={(e) => setNewSubject({ ...newSubject, color: e.target.value })}
                   placeholder="#3B82F6"
-                  className="flex-1 bg-slate-700 border-slate-600 text-white"
+                  className="flex-1 bg-slate-700/50 border-slate-600 text-white focus:border-cyan-500 transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="subject-goal" className="text-gray-300">Tempo Total (minutos)</Label>
+              <Label htmlFor="subject-goal" className="text-gray-300 font-medium">Meta semanal (minutos)</Label>
               <Input
                 id="subject-goal"
                 type="number"
@@ -1158,18 +1184,25 @@ const resetCycle = () => {
                 onChange={(e) => setNewSubject({ ...newSubject, time_goal: parseInt(e.target.value) || 0 })}
                 placeholder="300"
                 min="0"
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-slate-700/50 border-slate-600 text-white mt-1 focus:border-cyan-500 transition-colors"
               />
-              <p className="text-xs text-gray-400 mt-1">
-                {Math.ceil(newSubject.time_goal / settings.study_duration)} blocos de estudo
+              <p className="text-xs text-gray-400 mt-2 bg-slate-700/30 rounded-lg px-3 py-2">
+                ≈ {Math.ceil(newSubject.time_goal / settings.study_duration)} blocos de estudo
               </p>
             </div>
 
-            <div className="flex gap-2">
-              <Button onClick={handleAddSubject} className="flex-1 bg-cyan-600 hover:bg-cyan-700">
+            <div className="flex gap-2 pt-2">
+              <Button 
+                onClick={handleAddSubject} 
+                className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 font-semibold shadow-lg shadow-cyan-500/30"
+              >
                 Adicionar
               </Button>
-              <Button onClick={() => setShowAddSubject(false)} variant="outline" className="border-slate-600 text-gray-300">
+              <Button 
+                onClick={() => setShowAddSubject(false)} 
+                variant="outline" 
+                className="border-slate-600 text-gray-300 hover:bg-slate-700/50 hover:text-white"
+              >
                 Cancelar
               </Button>
             </div>
@@ -1180,53 +1213,72 @@ const resetCycle = () => {
       {/* Dialog Editar Matéria */}
       {showEditSubject && (
         <Dialog open={!!showEditSubject} onOpenChange={() => setShowEditSubject(null)}>
-          <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogContent className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white">Editar Matéria</DialogTitle>
+              <DialogTitle className="text-white text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                Editar Matéria
+              </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 mt-4">
               <div>
-                <Label className="text-gray-300">Nome</Label>
+                <Label className="text-gray-300 font-medium">Nome</Label>
                 <Input
                   defaultValue={showEditSubject.name}
                   onChange={(e) => setShowEditSubject({ ...showEditSubject, name: e.target.value })}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-slate-700/50 border-slate-600 text-white mt-1 focus:border-cyan-500 transition-colors"
                 />
               </div>
 
               <div>
-                <Label className="text-gray-300">Cor</Label>
-                <Input
-                  type="color"
-                  defaultValue={showEditSubject.color}
-                  onChange={(e) => setShowEditSubject({ ...showEditSubject, color: e.target.value })}
-                  className="w-20 h-10"
-                />
+                <Label className="text-gray-300 font-medium">Cor</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    type="color"
+                    defaultValue={showEditSubject.color}
+                    onChange={(e) => setShowEditSubject({ ...showEditSubject, color: e.target.value })}
+                    className="w-20 h-10 cursor-pointer"
+                  />
+                  <Input
+                    defaultValue={showEditSubject.color}
+                    onChange={(e) => setShowEditSubject({ ...showEditSubject, color: e.target.value })}
+                    placeholder="#3B82F6"
+                    className="flex-1 bg-slate-700/50 border-slate-600 text-white focus:border-cyan-500 transition-colors"
+                  />
+                </div>
               </div>
 
               <div>
-                <Label className="text-gray-300">Meta Semanal (minutos)</Label>
+                <Label className="text-gray-300 font-medium">Meta semanal (minutos)</Label>
                 <Input
                   type="number"
                   defaultValue={showEditSubject.time_goal}
                   onChange={(e) => setShowEditSubject({ ...showEditSubject, time_goal: parseInt(e.target.value) || 0 })}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-slate-700/50 border-slate-600 text-white mt-1 focus:border-cyan-500 transition-colors"
                 />
               </div>
 
-              <Button
-                onClick={() => {
-                  handleUpdateSubject(showEditSubject.id, {
-                    name: showEditSubject.name,
-                    color: showEditSubject.color,
-                    time_goal: showEditSubject.time_goal
-                  });
-                }}
-                className="w-full bg-cyan-600 hover:bg-cyan-700"
-              >
-                Salvar
-              </Button>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={() => {
+                    handleUpdateSubject(showEditSubject.id, {
+                      name: showEditSubject.name,
+                      color: showEditSubject.color,
+                      time_goal: showEditSubject.time_goal
+                    });
+                  }}
+                  className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 font-semibold shadow-lg shadow-cyan-500/30"
+                >
+                  Salvar
+                </Button>
+                <Button 
+                  onClick={() => setShowEditSubject(null)} 
+                  variant="outline" 
+                  className="border-slate-600 text-gray-300 hover:bg-slate-700/50 hover:text-white"
+                >
+                  Cancelar
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
