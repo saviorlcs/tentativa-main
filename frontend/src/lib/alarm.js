@@ -1,13 +1,72 @@
 // src/lib/alarm.js
+import { api } from "./api";
+
+// Sons disponíveis - mesmos do Settings
+const SOUND_OPTIONS = [
+  { 
+    id: 'bell', 
+    name: '🔔 Sino Clássico',
+    url: 'https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg'
+  },
+  { 
+    id: 'chime', 
+    name: '🎶 Campainha Suave',
+    url: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg'
+  },
+  { 
+    id: 'digital', 
+    name: '📟 Digital Moderno',
+    url: 'https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg'
+  },
+  { 
+    id: 'morning', 
+    name: '🌅 Alarme Matinal',
+    url: 'https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg'
+  },
+  { 
+    id: 'gentle', 
+    name: '🌙 Suave e Gentil',
+    url: 'https://actions.google.com/sounds/v1/alarms/phone_alerts_and_rings.ogg'
+  },
+  { 
+    id: 'bugle', 
+    name: '🎺 Corneta',
+    url: 'https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg'
+  },
+  { 
+    id: 'buzzer', 
+    name: '⚡ Buzzer Elétrico',
+    url: 'https://actions.google.com/sounds/v1/alarms/buzzer.ogg'
+  },
+  { 
+    id: 'marimba', 
+    name: '🎵 Marimba',
+    url: 'https://actions.google.com/sounds/v1/alarms/marimba_flourish.ogg'
+  },
+  { 
+    id: 'mechanical', 
+    name: '⚙️ Mecânico',
+    url: 'https://actions.google.com/sounds/v1/alarms/mechanical_clock_ring.ogg'
+  },
+  { 
+    id: 'spaceship', 
+    name: '🚀 Nave Espacial',
+    url: 'https://actions.google.com/sounds/v1/alarms/spaceship_alarm.ogg'
+  },
+];
+
 class Alarm {
   constructor() {
     this.ctx = null;
     this._unlocked = false;
     this._unlockHandler = this._unlockHandler.bind(this);
     this._resumeIfNeeded = this._resumeIfNeeded.bind(this);
+    this.currentAudio = null;
+    this.settings = null;
 
-    // Tente “auto” preparar: alguns browsers permitem antes do gesto
+    // Tente "auto" preparar: alguns browsers permitem antes do gesto
     this._ensureContext();
+    this._loadSettings();
 
     // Listeners para destravar com QUALQUER gesto do usuário
     window.addEventListener("pointerdown", this._unlockHandler, { passive: true });
@@ -17,6 +76,15 @@ class Alarm {
     // Se a aba ficar oculta/visível, garanta que o contexto não permaneça suspenso
     document.addEventListener("visibilitychange", this._resumeIfNeeded);
     window.addEventListener("focus", this._resumeIfNeeded);
+  }
+
+  async _loadSettings() {
+    try {
+      const res = await api.get('/settings');
+      this.settings = res.data || { sound_enabled: true, sound_id: 'bell', sound_duration: 2 };
+    } catch {
+      this.settings = { sound_enabled: true, sound_id: 'bell', sound_duration: 2 };
+    }
   }
 
   _ensureContext() {
@@ -55,14 +123,12 @@ class Alarm {
   }
 
   /**
-   * Beep simples com WebAudio (sem arquivo de áudio).
-   * Toca 2 bipes curtos (700Hz e 550Hz) com envelope suave.
+   * Beep simples com WebAudio (backup se settings não estiver disponível)
    */
   async playBeep() {
     const ctx = this._ensureContext();
     if (!ctx) return;
 
-    // Garante que o contexto está ativo; se não estiver, falhará silenciosamente
     await this.resume();
 
     const now = ctx.currentTime;
@@ -75,7 +141,6 @@ class Alarm {
       osc.frequency.value = freq;
       osc.connect(gain);
 
-      // Envelope: ataque/decay rápidos para evitar “click”
       const a = 0.01, d = 0.08;
       gain.gain.linearRampToValueAtTime(0.0001, start);
       gain.gain.linearRampToValueAtTime(0.8, start + a);
@@ -85,21 +150,86 @@ class Alarm {
       osc.stop(start + dur);
     };
 
-    // Dois bipes em sequência
     mkTone(700, now + 0.00, 0.18);
     mkTone(550, now + 0.22, 0.18);
   }
 
   /**
-   * API pública: tenta tocar; se estiver bloqueado, nós forçamos um resume
-   * e deixamos um retorno boolean para UI opcional (exibir dica/toast).
+   * Toca o som configurado pelo usuário usando arquivos de áudio
+   */
+  async playConfiguredSound() {
+    // Recarrega settings para garantir que está atualizado
+    if (!this.settings) {
+      await this._loadSettings();
+    }
+
+    // Se som desabilitado, não toca
+    if (!this.settings.sound_enabled) {
+      return true;
+    }
+
+    // Para qualquer som que esteja tocando
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+    }
+
+    // Encontra o som pelo ID
+    const soundId = this.settings.sound_id || 'bell';
+    const sound = SOUND_OPTIONS.find(s => s.id === soundId);
+    
+    if (!sound || !sound.url) {
+      // Fallback para beep se não encontrar o som
+      await this.playBeep();
+      return true;
+    }
+
+    return new Promise((resolve) => {
+      this.currentAudio = new Audio(sound.url);
+      this.currentAudio.volume = 0.7;
+      
+      const duration = Math.min(Math.max(this.settings.sound_duration || 2, 0.5), 5) * 1000;
+      let timeoutId;
+
+      const cleanup = () => {
+        clearTimeout(timeoutId);
+        if (this.currentAudio) {
+          this.currentAudio.pause();
+          this.currentAudio.currentTime = 0;
+        }
+        this.currentAudio = null;
+        resolve(true);
+      };
+
+      this.currentAudio.addEventListener('ended', cleanup);
+      this.currentAudio.addEventListener('error', () => {
+        console.warn('Erro ao tocar som, usando beep');
+        cleanup();
+        this.playBeep().then(() => resolve(true));
+      });
+
+      timeoutId = setTimeout(cleanup, duration);
+
+      this.currentAudio.play().catch(() => {
+        cleanup();
+        this.playBeep().then(() => resolve(true));
+      });
+    });
+  }
+
+  /**
+   * API pública: toca o som configurado ou beep como fallback
    */
   async play() {
     const ok = await this.resume();
     try {
-      await this.playBeep();
+      if (!this.settings) {
+        await this._loadSettings();
+      }
+      await this.playConfiguredSound();
       return true;
     } catch {
+      await this.playBeep();
       return !!ok;
     }
   }

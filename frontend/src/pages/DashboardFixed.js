@@ -4,11 +4,13 @@ import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Play, Pause, SkipForward, SkipBack, RotateCcw, Plus, Edit2, Trash2, GripVertical } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, RotateCcw, Plus, Edit2, Trash2, GripVertical, Trophy, Target } from 'lucide-react';
 import Header from '../components/Header';
 import { api } from "@/lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { alarm } from "@/lib/alarm";
+import { alarmSystem } from "@/lib/alarmNotification";
+import { useBackgroundTimer } from "../hooks/useBackgroundTimer";
 import {
   DndContext,
   closestCenter,
@@ -187,9 +189,8 @@ function DashboardFixed() {
   const [settings, setSettings] = useState({ study_duration: 50, break_duration: 10 });
   const [loading, setLoading] = useState(true);
 
-  // Estados do timer
-  const [timeLeft, setTimeLeft] = useState(0); // em segundos
-  const [isRunning, setIsRunning] = useState(false);
+  // Estados do timer - USANDO BACKGROUND TIMER
+  const backgroundTimer = useBackgroundTimer('dashboard-timer');
   const [sessionId, setSessionId] = useState(null);
 
   // Histórico de blocos (LINEAR)
@@ -200,13 +201,16 @@ function DashboardFixed() {
   const [localProgress, setLocalProgress] = useState({});
   const [stats, setStats] = useState(null);
 
+  // Estados de quests
+  const [quests, setQuests] = useState([]);
+
   // Estados de UI
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [showEditSubject, setShowEditSubject] = useState(null);
   const [newSubject, setNewSubject] = useState({ name: '', color: '#3B82F6', time_goal: 300 });
   const [activeId, setActiveId] = useState(null);
 
-  const timerIntervalRef = useRef(null);
+  const hasRequestedPermission = useRef(false);
 
   // Determinar fase atual baseado no histórico
   const currentPhase = useMemo(() => {
@@ -226,7 +230,7 @@ function DashboardFixed() {
   const phaseName = currentPhase === 'study' ? 'Estudo' : currentPhase === 'long_break' ? 'Pausa Longa' : 'Pausa Curta';
   const phaseEmoji = currentPhase === 'study' ? '📚' : currentPhase === 'long_break' ? '🌟' : '☕';
 
-  usePageTitle(isRunning ? `${formatTime(timeLeft)} - ${phaseName}` : 'Dashboard');
+  usePageTitle(backgroundTimer.isRunning ? `${formatTime(backgroundTimer.timeLeft)} - ${phaseName}` : 'Dashboard');
 
   // Sensores para drag & drop
   const sensors = useSensors(
@@ -314,7 +318,7 @@ useEffect(() => {
             study_duration: settingsRes.data.study_duration || 50,
             break_duration: settingsRes.data.break_duration || 10,
           });
-          setTimeLeft((settingsRes.data.study_duration || 50) * 60);
+          backgroundTimer.reset((settingsRes.data.study_duration || 50) * 60);
         }
 
         // Inicializar progresso local
@@ -341,35 +345,34 @@ useEffect(() => {
     fetchData();
   }, []);
 
-  // Timer effect
+  // Solicitar permissão de notificação ao montar
   useEffect(() => {
-    if (isRunning) {
-      timerIntervalRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            handleBlockComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
+    if (!hasRequestedPermission.current) {
+      hasRequestedPermission.current = true;
+      alarmSystem.requestPermission().then(granted => {
+        if (granted) {
+          console.log('✓ Permissão de notificação concedida');
+        } else {
+          console.log('✗ Permissão de notificação negada');
+        }
+      });
     }
+  }, []);
 
-    return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
-    };
-  }, [isRunning]);
+  // Configurar callback de conclusão do timer
+  useEffect(() => {
+    backgroundTimer.onComplete(handleBlockComplete);
+  }, [currentPhase, currentSubject, settings, sessionId, blockHistory]);
 
   // Quando completar um bloco (100%)
   const handleBlockComplete = async () => {
-    setIsRunning(false);
-    alarm();
+    backgroundTimer.pause();
+    
+    // Tocar alarme E mostrar notificação
+    await alarmSystem.trigger(
+      '⏰ Timer Completo!',
+      currentPhase === 'study' ? 'Bloco de estudo completo!' : 'Pausa completa!'
+    );
 
     const newBlock = {
       type: currentPhase,
@@ -423,7 +426,7 @@ useEffect(() => {
     const nextDuration = nextPhase === 'study' ? settings.study_duration : 
                         nextPhase === 'long_break' ? settings.break_duration * 3 : settings.break_duration;
 
-    setTimeLeft(nextDuration * 60);
+    backgroundTimer.reset(nextDuration * 60);
 
     if (nextPhase !== 'study') {
       toast.info(`Próximo: ${nextPhase === 'long_break' ? 'Pausa Longa 🌟' : 'Pausa Curta ☕'}`);
@@ -439,9 +442,9 @@ useEffect(() => {
       return;
     }
 
-    if (!isRunning) {
+    if (!backgroundTimer.isRunning) {
       // Iniciar
-      if (currentPhase === 'study' && timeLeft === settings.study_duration * 60) {
+      if (currentPhase === 'study' && backgroundTimer.timeLeft === settings.study_duration * 60) {
         // Novo bloco de estudo - criar sessão
         try {
           const response = await api.post('/study/start', { subject_id: currentSubject.id });
@@ -452,10 +455,10 @@ useEffect(() => {
           return;
         }
       }
-      setIsRunning(true);
+      backgroundTimer.start(backgroundTimer.timeLeft);
     } else {
       // Pausar
-      setIsRunning(false);
+      backgroundTimer.pause();
     }
   };
 
@@ -471,13 +474,13 @@ const getPlannedSeconds = useCallback((subject) => {
 
 // Resetar o bloco atual: só reinicia o tempo do bloco da fase corrente
 const resetCurrentBlock = useCallback(() => {
-  setIsRunning(false);
+  backgroundTimer.pause();
   const d = currentPhase === 'study'
     ? settings.study_duration
     : (currentPhase === 'long_break' ? settings.break_duration * 3 : settings.break_duration);
-  setTimeLeft(d * 60);
+  backgroundTimer.reset(d * 60);
   toast.success('Bloco atual resetado');
-}, [currentPhase, settings]);
+}, [currentPhase, settings, backgroundTimer]);
 
 // Voltar 1 bloco no histórico (e ajustar barra se foi estudo "real")
 const previousBlock = useCallback(() => {
@@ -506,12 +509,12 @@ const previousBlock = useCallback(() => {
       : (last.type === 'long_break' ? settings.break_duration * 3 : settings.break_duration)
   );
 
-  setIsRunning(false);
-  setTimeLeft(prevDurationMin * 60);
+  backgroundTimer.pause();
+  backgroundTimer.reset(prevDurationMin * 60);
   setSessionId(null);
 
   toast.success('Voltou 1 bloco');
-}, [blockHistory, settings]);
+}, [blockHistory, settings, backgroundTimer]);
 
 
 // substitua seu handler de "pular" por este:
@@ -528,7 +531,7 @@ const skipBlock = useCallback(() => {
   }
 
   // Caso contrário: apenas pular a FASE (sem mexer no progresso)
-  setIsRunning(false);
+  backgroundTimer.pause();
 
   const newBlock = {
     type: currentPhase,
@@ -552,9 +555,9 @@ const skipBlock = useCallback(() => {
     ? settings.study_duration
     : (nextPhase === 'long_break' ? settings.break_duration * 3 : settings.break_duration);
 
-  setTimeLeft(nextDuration * 60);
+  backgroundTimer.reset(nextDuration * 60);
   toast.info(`${currentPhase === 'study' ? 'Bloco' : 'Pausa'} pulado`);
-}, [currentPhase, currentSubject, isCurrentSubjectComplete, advanceToNextSubject, settings, blockHistory]);
+}, [currentPhase, currentSubject, isCurrentSubjectComplete, advanceToNextSubject, settings, blockHistory, backgroundTimer]);
 
 
 
@@ -566,19 +569,20 @@ const skipBlock = useCallback(() => {
   if (!currentSubject) { toast.error("Nenhuma matéria selecionada"); return; }
   const sid = currentSubject.id;
 
+  // Limpar TUDO relacionado à matéria: progresso E histórico (incluindo pausas)
   setLocalProgress(prev => ({ ...prev, [sid]: 0 }));
-  setBlockHistory(prev => prev.filter(b => !(b.type === "study" && b.subjectId === sid)));
-  setIsRunning(false);
+  setBlockHistory(prev => prev.filter(b => b.subjectId !== sid));
+  backgroundTimer.pause();
   setSessionId(null);
-  toast.success("Matéria atual resetada");
+  toast.success("Matéria atual resetada 100%");
 };
 
 const resetCycle = () => {
-  setIsRunning(false);
+  backgroundTimer.pause();
   setSessionId(null);
   setBlockHistory([]);
   setLocalProgress({});
-  setTimeLeft((settings?.study_duration || 50) * 60);
+  backgroundTimer.reset((settings?.study_duration || 50) * 60);
   toast.success("Ciclo resetado");
 };
 
@@ -701,6 +705,88 @@ const resetCycle = () => {
   const studyBlocksCount = blockHistory.filter(b => b.type === 'study').length;
   const nextLongBreakIn = 4 - (studyBlocksCount % 4);
 
+  // --- Sistema de Quests ---
+  const minutesStudiedSoFar = useMemo(() => {
+    return (stats?.subjects || []).reduce((s, x) => s + (x.time_studied || 0), 0);
+  }, [stats]);
+
+  // Matéria menos estudada
+  const lowestSubjectInfo = useMemo(() => {
+    return subjects.reduce((acc, subj) => {
+      const st = (stats?.subjects || []).find(ss => ss.id === subj.id) || {};
+      const studied = st.time_studied || 0;
+      if (!acc || studied < acc.studied) return { subject: subj, studied };
+      return acc;
+    }, null);
+  }, [subjects, stats]);
+
+  // Gerar quest com recompensa
+  const genQuest = (key, title, target, progress, difficulty = "medium") => {
+    const diffMultMap = { easy: 0.8, medium: 1, hard: 1.5 };
+    const diffMult = diffMultMap[difficulty] ?? 1;
+
+    const baseCoins = Math.ceil(((target ?? 60) / 5));
+    const coins = Math.max(5, Math.round(baseCoins * diffMult));
+    const xp = coins * 10;
+
+    return {
+      id: `local-${key}`,
+      title,
+      target,
+      progress,
+      coins_reward: coins,
+      xp_reward: xp,
+      completed: progress >= (target ?? 0),
+      _difficulty: difficulty,
+    };
+  };
+
+  const fourQuests = useMemo(() => {
+    const auto = [];
+
+    // 1) completar 1 ciclo
+    auto.push(
+      genQuest(
+        "complete-cycle",
+        "Completar 1 ciclo",
+        1,
+        (stats?.cycle_progress ?? 0) >= 100 ? 1 : 0,
+        "medium"
+      )
+    );
+
+    // 2) estudar 300 min na semana
+    auto.push(
+      genQuest("study-300", "Estudar 300 min na semana", 300, minutesStudiedSoFar, "medium")
+    );
+
+    // 3) focar na Matéria menos estudada (se existir)
+    if (lowestSubjectInfo?.subject) {
+      auto.push(
+        genQuest(
+          "focus-subject",
+          `Estudar ${lowestSubjectInfo.subject.name} por 120 min`,
+          120,
+          lowestSubjectInfo.studied,
+          "hard"
+        )
+      );
+    }
+
+    // 4) concluir 6 sessões de estudo
+    auto.push(
+      genQuest(
+        "sessions-6",
+        "Concluir 6 sessões de estudo",
+        6,
+        stats?.sessions_completed || 0,
+        "easy"
+      )
+    );
+
+    return auto.slice(0, 4);
+  }, [stats, minutesStudiedSoFar, lowestSubjectInfo]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -763,7 +849,7 @@ const resetCycle = () => {
                        color: phaseColor,
                        textShadow: `0 0 40px ${phaseColor}60`
                      }}>
-                  {formatTime(timeLeft)}
+                  {formatTime(backgroundTimer.timeLeft)}
                 </div>
                 <p className="text-gray-400 text-lg font-medium">
                   {currentPhase === 'study' ? `${settings.study_duration} min` : 
@@ -779,7 +865,7 @@ const resetCycle = () => {
                   className="h-16 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-bold text-lg rounded-2xl shadow-2xl shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105"
                   data-testid="start-pause-btn"
                 >
-                  {isRunning ? (
+                  {backgroundTimer.isRunning ? (
                     <>
                       <Pause className="w-5 h-5 mr-2" />
                       Pausar
@@ -804,7 +890,7 @@ const resetCycle = () => {
 
                 <Button
                   onClick={previousBlock}
-                  disabled={blockHistory.length === 0 || isRunning}
+                  disabled={blockHistory.length === 0 || backgroundTimer.isRunning}
                   className="h-16 bg-slate-700/80 hover:bg-slate-600/80 disabled:opacity-40 text-white font-semibold rounded-2xl transition-all duration-300 hover:scale-105"
                   data-testid="previous-btn"
                 >
@@ -1071,6 +1157,77 @@ const resetCycle = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Card de Quests */}
+        <div className="lg:col-span-3 mb-8">
+          <div className="bg-gradient-to-br from-purple-900/30 via-slate-800/50 to-slate-900/60 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-6 shadow-2xl shadow-purple-500/10">
+            <div className="flex items-center gap-3 mb-6">
+              <Trophy className="w-6 h-6 text-yellow-400" />
+              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-purple-400 to-pink-400">
+                Missões Diárias
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {fourQuests.map((quest) => {
+                const progressPct = quest.target > 0 ? Math.min(100, (quest.progress / quest.target) * 100) : 0;
+                return (
+                  <div
+                    key={quest.id}
+                    className={`relative overflow-hidden rounded-xl p-4 transition-all duration-300 ${
+                      quest.completed
+                        ? 'bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-2 border-green-500/50'
+                        : 'bg-slate-800/60 border-2 border-slate-700/50 hover:border-purple-500/50'
+                    }`}
+                  >
+                    {quest.completed && (
+                      <div className="absolute top-2 right-2">
+                        <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">✓</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="mb-3">
+                      <h3 className={`font-bold text-sm mb-2 ${quest.completed ? 'text-green-300' : 'text-white'}`}>
+                        {quest.title}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <Target className="w-3 h-3" />
+                        <span>{quest.progress} / {quest.target}</span>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="mb-3">
+                      <div className="h-2 rounded-full bg-slate-700/50 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            quest.completed
+                              ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                              : 'bg-gradient-to-r from-purple-400 to-pink-500'
+                          }`}
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Rewards */}
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-400 font-bold">🪙 {quest.coins_reward}</span>
+                        <span className="text-purple-400 font-bold">⭐ {quest.xp_reward}</span>
+                      </div>
+                      {quest.completed && (
+                        <span className="text-green-400 font-bold text-xs">Completa!</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
