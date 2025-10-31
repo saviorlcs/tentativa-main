@@ -402,6 +402,15 @@ useEffect(() => {
     }
   }, []);
 
+// Monitor de mudanças no localProgress para debug
+  useEffect(() => {
+    console.log('[useEffect] localProgress alterado:', localProgress);
+    console.log('[useEffect] currentSubject:', currentSubject);
+    if (currentSubject) {
+      console.log('[useEffect] progresso da matéria atual:', localProgress[currentSubject.id]);
+    }
+  }, [localProgress, currentSubject]);
+
   // Configurar callback de conclusão do timer
   useEffect(() => {
     backgroundTimer.onComplete(handleBlockComplete);
@@ -409,6 +418,7 @@ useEffect(() => {
 
   // Quando completar um bloco (100%)
   const handleBlockComplete = async () => {
+    console.log('[handleBlockComplete] iniciando...', { currentPhase, currentSubject });
     backgroundTimer.pause();
     
     // Tocar alarme E mostrar notificação
@@ -437,11 +447,21 @@ useEffect(() => {
           skipped: false
         });
 
+        console.log('[handleBlockComplete] atualizando progresso:', {
+          subjectId: currentSubject.id,
+          progressAntes: localProgress[currentSubject.id],
+          adicionando: settings.study_duration
+        });
+
         // Atualizar progresso local
-        setLocalProgress(prev => ({
-          ...prev,
-          [currentSubject.id]: (prev[currentSubject.id] || 0) + settings.study_duration
-        }));
+        setLocalProgress(prev => {
+          const newProgress = {
+            ...prev,
+            [currentSubject.id]: (prev[currentSubject.id] || 0) + settings.study_duration
+          };
+          console.log('[handleBlockComplete] novo localProgress:', newProgress);
+          return newProgress;
+        });
 
         // Recarregar stats
         const statsRes = await api.get('/stats');
@@ -519,10 +539,9 @@ const toggleTimer = async () => {
           console.log('[toggleTimer] sessão criada', response.data);
         } catch (error) {
           console.error('[toggleTimer] API start error', error);
-          toast.error('Erro ao iniciar sessão (ver console / network)');
-          // Nota: não prosseguimos para start se a API falhar; se você quer forçar o start mesmo sem backend,
-          // comente o `return` abaixo.
-          return;
+          console.warn('[toggleTimer] Continuando sem sessão do backend...');
+          // Continua mesmo se a API falhar (útil para teste ou modo offline)
+          // return; // Comentado para permitir funcionamento sem backend
         }
       }
 
@@ -572,13 +591,24 @@ const previousBlock = useCallback(() => {
   }
 
   const last = blockHistory[blockHistory.length - 1];
+console.log('[previousBlock] voltando bloco:', last);
 
   // Se o último bloco foi de estudo "real" (não pulado), desfaz a barra da matéria
   if (last.type === 'study' && last.subjectId && !last.skipped) {
-    setLocalProgress(prev => ({
-      ...prev,
-      [last.subjectId]: Math.max(0, (prev[last.subjectId] || 0) - (last.duration || 0))
-    }));
+    console.log('[previousBlock] desfazendo progresso:', {
+      subjectId: last.subjectId,
+      duration: last.duration,
+      progressAntes: localProgress[last.subjectId]
+    });
+    
+    setLocalProgress(prev => {
+      const newProgress = {
+        ...prev,
+        [last.subjectId]: Math.max(0, (prev[last.subjectId] || 0) - (last.duration || 0))
+      };
+      console.log('[previousBlock] novo localProgress:', newProgress);
+      return newProgress;
+    });
   }
 
   // Remove do histórico
@@ -596,7 +626,7 @@ const previousBlock = useCallback(() => {
   setSessionId(null);
 
   toast.success('Voltou 1 bloco');
-}, [blockHistory, settings, backgroundTimer]);
+}, [blockHistory, settings, backgroundTimer, localProgress]);
 
 
 // substitua seu handler de "pular" por este:
@@ -760,20 +790,25 @@ const resetCycle = () => {
     }
   };
 
-  // Cálculos de progresso
-  const getSubjectProgress = (subjectId) => {
+   // Cálculos de progresso - memoizado com useCallback
+   const getSubjectProgress = useCallback((subjectId) => {
     const subject = subjects.find(s => s.id === subjectId);
     if (!subject) return 0;
 
     const completed = localProgress[subjectId] || 0;
     const goal = subject.time_goal || 1;
-    return Math.min(100, (completed / goal) * 100);
-  };
+    const progress = Math.min(100, (completed / goal) * 100);
+    
+    console.log('[getSubjectProgress]', { subjectId, completed, goal, progress });
+    return progress;
+  }, [subjects, localProgress]);
 
   const currentSubjectProgress = useMemo(() => {
     if (!currentSubject) return 0;
-    return getSubjectProgress(currentSubject.id);
-  }, [currentSubject, localProgress, subjects]);
+    const progress = getSubjectProgress(currentSubject.id);
+    console.log('[currentSubjectProgress]', { currentSubjectId: currentSubject.id, progress });
+    return progress;
+  }, [currentSubject, getSubjectProgress]);
 
   const cycleProgress = useMemo(() => {
     if (subjects.length === 0) return 0;
