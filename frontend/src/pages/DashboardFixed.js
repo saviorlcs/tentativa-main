@@ -268,6 +268,22 @@ function DashboardFixed() {
   const phaseName = currentPhase === 'study' ? 'Estudo' : currentPhase === 'long_break' ? 'Pausa Longa' : 'Pausa Curta';
   const phaseEmoji = currentPhase === 'study' ? '📚' : currentPhase === 'long_break' ? '🌟' : '☕';
 
+// Formatar tempo MM:SS
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatMinutes = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+      return `${hours}h ${mins}min`;
+    }
+    return `${mins}min`;
+  };
+
   usePageTitle(backgroundTimer.isRunning ? `${formatTime(backgroundTimer.timeLeft)} - ${phaseName}` : 'Dashboard');
 
   // Sensores para drag & drop
@@ -302,10 +318,10 @@ const advanceToNextSubject = useCallback(() => {
   setCurrentSubject(next);
 
   // prepara novo bloco de ESTUDO
-  setIsRunning(false);
-  setTimeLeft((settings?.study_duration || 50) * 60);
+  backgroundTimer.pause();
+  backgroundTimer.reset((settings?.study_duration || 50) * 60);
   toast.info(`Próxima matéria: ${next.name}`);
-}, [subjects, currentSubject, settings]);
+}, [subjects, currentSubject, settings, backgroundTimer]);
 
 
 useEffect(() => {
@@ -321,21 +337,7 @@ useEffect(() => {
   }
 }, [currentSubject, localProgress, getPlannedMinutes, advanceToNextSubject]);
 
-  // Formatar tempo MM:SS
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const formatMinutes = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins}min`;
-    }
-    return `${mins}min`;
-  };
+  
 
   // Carregar dados do backend
   useEffect(() => {
@@ -477,31 +479,70 @@ useEffect(() => {
   };
 
   // Iniciar/Pausar timer
-  const toggleTimer = async () => {
-    if (currentPhase === 'study' && !currentSubject) {
-      toast.error('Selecione uma matéria para estudar');
+  // --- Substitua a função toggleTimer por este bloco ---
+const toggleTimer = async () => {
+  console.log('[toggleTimer] chamado', { currentPhase, currentSubject, backgroundTimer });
+
+  if (currentPhase === 'study' && !currentSubject) {
+    toast.error('Selecione uma matéria para estudar');
+    console.log('[toggleTimer] sem matéria selecionada — abortando');
+    return;
+  }
+
+  try {
+    if (backgroundTimer && backgroundTimer.isPaused) {
+      console.log('[toggleTimer] resumindo timer (paused -> resume)');
+      backgroundTimer.resume();
+      return;
+    }
+
+    if (!backgroundTimer || typeof backgroundTimer.start !== 'function') {
+      console.error('[toggleTimer] backgroundTimer inválido ou sem método start', backgroundTimer);
+      toast.error('Erro interno: temporizador indisponível');
       return;
     }
 
     if (!backgroundTimer.isRunning) {
-      // Iniciar
-      if (currentPhase === 'study' && backgroundTimer.timeLeft === settings.study_duration * 60) {
-        // Novo bloco de estudo - criar sessão
+      // se timeLeft for falsy, fallback para settings.study_duration * 60
+      const fallbackSecs = (settings && settings.study_duration) ? settings.study_duration * 60 : 25 * 60;
+      const secsToStart = (typeof backgroundTimer.timeLeft === 'number' && backgroundTimer.timeLeft > 0)
+        ? backgroundTimer.timeLeft
+        : fallbackSecs;
+
+      console.log('[toggleTimer] iniciando timer', { secsToStart, backgroundTimerTimeLeft: backgroundTimer.timeLeft, fallbackSecs });
+
+      // se for um novo bloco de estudo e timeLeft corresponde ao padrão, criar sessão
+      if (currentPhase === 'study' && secsToStart === (settings?.study_duration || 25) * 60) {
         try {
           const response = await api.post('/study/start', { subject_id: currentSubject.id });
           setSessionId(response.data?.id || null);
+          console.log('[toggleTimer] sessão criada', response.data);
         } catch (error) {
-          console.error('Erro ao iniciar sessão:', error);
-          toast.error('Erro ao iniciar sessão');
+          console.error('[toggleTimer] API start error', error);
+          toast.error('Erro ao iniciar sessão (ver console / network)');
+          // Nota: não prosseguimos para start se a API falhar; se você quer forçar o start mesmo sem backend,
+          // comente o `return` abaixo.
           return;
         }
       }
-      backgroundTimer.start(backgroundTimer.timeLeft);
-    } else {
-      // Pausar
-      backgroundTimer.pause();
+
+      // garante que passamos um número válido para start()
+      backgroundTimer.start(secsToStart);
+      console.log('[toggleTimer] backgroundTimer.start() chamado');
+      return;
     }
-  };
+
+    // se já estiver rodando -> pausar
+    console.log('[toggleTimer] pausando timer (isRunning true)');
+    backgroundTimer.pause();
+
+  } catch (err) {
+    console.error('[toggleTimer] erro inesperado', err);
+    toast.error('Erro ao controlar o timer (veja console)');
+  }
+};
+// --- fim do bloco ---
+
 
   
 // helper (cole perto dos outros helpers)
@@ -851,9 +892,9 @@ const resetCycle = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
       <Header />
 
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Grid Principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        {/* Grid Principal - Otimizado */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           
           {/* Coluna Central - Timer (2 colunas) */}
           <div className="lg:col-span-2">
@@ -929,6 +970,11 @@ const resetCycle = () => {
                     <>
                       <Pause className="w-5 h-5 mr-2" />
                       Pausar
+                    </>
+                  ) : backgroundTimer.isPaused ? (
+                    <>
+                      <Play className="w-5 h-5 mr-2" />
+                      Retomar
                     </>
                   ) : (
                     <>
@@ -1221,8 +1267,9 @@ const resetCycle = () => {
           </div>
         </div>
 
-        {/* Card de Quests - Grid para melhor uso do espaço */}
-        <div className="lg:col-span-3">
+        {/* Grid Secundário - Quests e Fila lado a lado (Otimizado) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Card de Quests */}
           <div className="bg-gradient-to-br from-purple-900/30 via-slate-800/50 to-slate-900/60 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-5 shadow-2xl shadow-purple-500/10">
             <div className="flex items-center gap-3 mb-4">
               <Trophy className="w-5 h-5 text-yellow-400" />
@@ -1231,7 +1278,7 @@ const resetCycle = () => {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {fourQuests.map((quest) => {
                 const progressPct = quest.target > 0 ? Math.min(100, (quest.progress / quest.target) * 100) : 0;
                 return (
@@ -1290,15 +1337,20 @@ const resetCycle = () => {
               })}
             </div>
           </div>
-        </div>
 
-        {/* Fila de Conteúdos (Otimizado - mais compacto) */}
-        <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-5 shadow-xl">
+          {/* Fila de Conteúdos (Otimizado - lado a lado com Quests) */}
+          <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-5 shadow-xl">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-base font-bold text-white">Fila de conteúdos</h2>
             <Button
-              onClick={() => setShowAddSubject(true)}
-              className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg px-3 py-1.5 text-sm\"
+              onClick={() => {
+                // Gera uma cor única ao abrir o diálogo
+                const existingColors = subjects.map(s => s.color);
+                const uniqueColor = generateUniqueColor(existingColors);
+                setNewSubject({ name: '', color: uniqueColor, time_goal: 300 });
+                setShowAddSubject(true);
+              }}
+              className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg px-3 py-1.5 text-sm"
               size="sm"
             >
               <Plus className="w-4 h-4 mr-1" />
@@ -1350,6 +1402,7 @@ const resetCycle = () => {
             </DndContext>
           )}
         </div>
+      </div>
       </div>
 
       {/* Dialog Adicionar Matéria */}
