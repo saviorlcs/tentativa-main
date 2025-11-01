@@ -213,6 +213,8 @@ class PurchaseItem(BaseModel):
 class Settings(BaseModel):
     study_duration: int = 50  # minutes
     break_duration: int = 10  # minutes
+    long_break_duration: int = 30  # minutes
+    long_break_interval: int = 4  # a cada quantos blocos de estudo
     sound_enabled: Optional[bool] = True
     sound_id: Optional[str] = 'bell'
     sound_duration: Optional[float] = 2.0
@@ -222,6 +224,8 @@ class UserSettings(BaseModel):
     user_id: str
     study_duration: int = 50
     break_duration: int = 10
+    long_break_duration: int = 30
+    long_break_interval: int = 4
 
 class NicknameTagCreate(BaseModel):
     nickname: str
@@ -3047,11 +3051,25 @@ async def save_financeiro_value(request: Request, session_token: Optional[str] =
 class SettingsIn(BaseModel):
     study_duration: Optional[int] = None
     break_duration: Optional[int] = None
+    long_break_duration: Optional[int] = None
+    long_break_interval: Optional[int] = None
+    sound_enabled: Optional[bool] = None
+    sound_id: Optional[str] = None
+    sound_duration: Optional[float] = None
 
 @api_router.get("/settings")
 async def get_settings(request: Request, session_token: Optional[str] = Cookie(None)):
     user = await get_current_user(request, session_token)
-    s = await db.user_settings.find_one({"user_id": user.id}, {"_id":0}) or {"user_id": user.id, "study_duration":50, "break_duration":10}
+    s = await db.user_settings.find_one({"user_id": user.id}, {"_id":0}) or {
+        "user_id": user.id, 
+        "study_duration": 50, 
+        "break_duration": 10,
+        "long_break_duration": 30,
+        "long_break_interval": 4,
+        "sound_enabled": True,
+        "sound_id": "bell",
+        "sound_duration": 2.0
+    }
     return s
 
 @api_router.patch("/settings")

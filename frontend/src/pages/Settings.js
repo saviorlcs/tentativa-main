@@ -43,6 +43,8 @@ export default function Settings() {
   const [settings, setSettings] = useState({ 
     study_duration: 50, 
     break_duration: 10,
+    long_break_duration: 30,
+    long_break_interval: 4,
     sound_enabled: true,
     sound_id: 'bell',
     sound_duration: 2
@@ -81,6 +83,8 @@ export default function Settings() {
         setSettings({
           study_duration: Number(settingsRes?.data?.study_duration ?? 50),
           break_duration: Number(settingsRes?.data?.break_duration ?? 10),
+          long_break_duration: Number(settingsRes?.data?.long_break_duration ?? 30),
+          long_break_interval: Number(settingsRes?.data?.long_break_interval ?? 4),
           sound_enabled: settingsRes?.data?.sound_enabled ?? true,
           sound_id: settingsRes?.data?.sound_id || 'bell',
           sound_duration: settingsRes?.data?.sound_duration ?? 2,
@@ -365,7 +369,7 @@ function playSoundById(soundId, duration = 2, onend) {
                 />
               </div>
               <div>
-                <Label className="text-gray-300 font-semibold">Tempo de Pausa (minutos)</Label>
+                <Label className="text-gray-300 font-semibold">Tempo de Pausa Curta (minutos)</Label>
                 <Input
                   type="number"
                   value={settings.break_duration}
@@ -374,6 +378,34 @@ function playSoundById(soundId, duration = 2, onend) {
                   max={60}
                   className="bg-slate-700/50 border-slate-600 text-white"
                 />
+              </div>
+              <div>
+                <Label className="text-gray-300 font-semibold">Tempo de Pausa Longa (minutos)</Label>
+                <Input
+                  type="number"
+                  value={settings.long_break_duration}
+                  onChange={(e) => setSettings({ ...settings, long_break_duration: Number(e.target.value) })}
+                  min={1}
+                  max={120}
+                  className="bg-slate-700/50 border-slate-600 text-white"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Pausa longa substitui a pausa curta e não é contabilizada no progresso
+                </p>
+              </div>
+              <div>
+                <Label className="text-gray-300 font-semibold">Pausa Longa a Cada X Blocos de Estudo</Label>
+                <Input
+                  type="number"
+                  value={settings.long_break_interval}
+                  onChange={(e) => setSettings({ ...settings, long_break_interval: Number(e.target.value) })}
+                  min={1}
+                  max={10}
+                  className="bg-slate-700/50 border-slate-600 text-white"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Exemplo: 4 = pausa longa após cada 4 blocos de estudo
+                </p>
               </div>
               <Button
                 onClick={handleSaveSettings}

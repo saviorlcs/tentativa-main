@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Play, Pause, SkipForward, SkipBack, RotateCcw, Plus, Edit2, Trash2, GripVertical, Trophy, Target } from 'lucide-react';
 import Header from '../components/Header';
+import useTabTimerTitle from "../hooks/useTabTimerTitle";
 import { api } from "@/lib/api";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { alarm } from "@/lib/alarm";
@@ -41,18 +42,24 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
 
-// Componente Bar para progresso
-function Bar({ value, className = "" }) {
+// Componente Bar para progresso - CORRIGIDO para forçar re-render
+function Bar({ value, className = "", forceUpdateKey }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
+  console.log('[Bar] renderizando com valor:', v, 'key:', forceUpdateKey);
+  
+  // Força re-render usando o valor diretamente no style
   return (
-    <div className={`h-2 rounded-full bg-slate-700/50 overflow-hidden ${className}`}>
-      <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-cyan-500 transition-[width] duration-500" style={{ width: `${v}%` }} />
+    <div className={`h-2 rounded-full bg-slate-700/50 overflow-hidden ${className}`} key={forceUpdateKey}>
+      <div
+        className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-cyan-500 transition-[width] duration-500"
+        style={{ width: `${v}%` }}
+      />
     </div>
   );
 }
 
-// Componente de Item Arrastável com design moderno
-function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, progress }) {
+// Componente de Item Arrastável com design moderno - CORRIGIDO
+function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, progress, forceUpdateKey }) {
   const {
     attributes,
     listeners,
@@ -77,6 +84,8 @@ function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, pro
     return `${mins}min`;
   };
 
+  console.log('[SortableSubjectItem] renderizando:', { subjectId: subject.id, progress, forceUpdateKey });
+
   return (
     <div
       ref={setNodeRef}
@@ -100,7 +109,7 @@ function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, pro
         {/* Color Indicator */}
         <div
           className={`w-3 h-3 rounded-full transition-all duration-300 ${isActive ? 'scale-125' : ''}`}
-          style={{ 
+          style={{
             backgroundColor: subject.color,
             boxShadow: isActive ? `0 0 12px ${subject.color}` : 'none'
           }}
@@ -117,8 +126,8 @@ function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, pro
             </span>
           </div>
 
-          {/* Progress Bar */}
-          <Bar value={progress} />
+          {/* Progress Bar - com key para forçar re-render */}
+          <Bar value={progress} forceUpdateKey={forceUpdateKey} />
         </div>
 
         {/* Action Buttons - Sempre visíveis */}
@@ -187,17 +196,17 @@ const arcPath = (cx, cy, r, startDeg, endDeg) => {
 // Helper para gerar cor única diferente das existentes
 const generateUniqueColor = (existingColors) => {
   const vibrantColors = [
-    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', 
+    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e',
     '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
     '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'
   ];
-  
+
   const availableColors = vibrantColors.filter(c => !existingColors.includes(c));
-  
+
   if (availableColors.length > 0) {
     return availableColors[Math.floor(Math.random() * availableColors.length)];
   }
-  
+
   // Se todas as cores estão em uso, gera uma cor aleatória
   const randomColor = () => {
     const hue = Math.floor(Math.random() * 360);
@@ -205,7 +214,7 @@ const generateUniqueColor = (existingColors) => {
     const lightness = 45 + Math.floor(Math.random() * 15);  // 45-60%
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
   };
-  
+
   // Garante que a nova cor seja diferente das existentes
   let newColor;
   let attempts = 0;
@@ -213,18 +222,23 @@ const generateUniqueColor = (existingColors) => {
     newColor = randomColor();
     attempts++;
   } while (existingColors.includes(newColor) && attempts < 50);
-  
+
   return newColor;
 };
 
 function DashboardFixed() {
   const { me: user, refreshUser } = useApp();
   const [shopItems, setShopItems] = useState([]);
-  
+
   // Estados principais
   const [subjects, setSubjects] = useState([]);
   const [currentSubject, setCurrentSubject] = useState(null);
-  const [settings, setSettings] = useState({ study_duration: 50, break_duration: 10 });
+  const [settings, setSettings] = useState({ 
+    study_duration: 50, 
+    break_duration: 10,
+    long_break_duration: 30,
+    long_break_interval: 4
+  });
   const [loading, setLoading] = useState(true);
 
   // Estados do timer - USANDO BACKGROUND TIMER
@@ -232,11 +246,12 @@ function DashboardFixed() {
   const [sessionId, setSessionId] = useState(null);
 
   // Histórico de blocos (LINEAR)
-  const [blockHistory, setBlockHistory] = useState([]); 
+  const [blockHistory, setBlockHistory] = useState([]);
   // Estrutura: [{ type: 'study' | 'short_break' | 'long_break', subjectId?, duration, timestamp }]
 
   // Estados de progresso (local - só salva no backend quando completar)
   const [localProgress, setLocalProgress] = useState({});
+  const [progressUpdateTrigger, setProgressUpdateTrigger] = useState(0); // NOVO: trigger para forçar re-render
   const [stats, setStats] = useState(null);
 
   // Estados de quests
@@ -254,16 +269,16 @@ function DashboardFixed() {
   const currentPhase = useMemo(() => {
     if (blockHistory.length === 0) return 'study';
     const last = blockHistory[blockHistory.length - 1];
-    
+
     if (last.type === 'study') {
       // Após estudo, vem pausa
       const studyCount = blockHistory.filter(b => b.type === 'study').length;
-      return studyCount % 4 === 0 ? 'long_break' : 'short_break';
+       return studyCount % settings.long_break_interval === 0 ? 'long_break' : 'short_break';
     } else {
       // Após pausa, vem estudo
       return 'study';
     }
-  }, [blockHistory]);
+  }, [blockHistory, settings.long_break_interval]);
 
   const phaseName = currentPhase === 'study' ? 'Estudo' : currentPhase === 'long_break' ? 'Pausa Longa' : 'Pausa Curta';
   const phaseEmoji = currentPhase === 'study' ? '📚' : currentPhase === 'long_break' ? '🌟' : '☕';
@@ -285,7 +300,15 @@ function DashboardFixed() {
   };
 
   usePageTitle(backgroundTimer.isRunning ? `${formatTime(backgroundTimer.timeLeft)} - ${phaseName}` : 'Dashboard');
-
+  // Usar useTabTimerTitle para o título da aba
+  useTabTimerTitle({
+    seconds: backgroundTimer.timeLeft,
+    running: backgroundTimer.isRunning,
+    phase: currentPhase === 'study' ? 'study' : 'break',
+    subject: currentSubject?.name || '',
+    appName: 'Pomociclo',
+    compact: true
+  });
   // Sensores para drag & drop
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -316,6 +339,7 @@ const advanceToNextSubject = useCallback(() => {
 
   // troca a matéria
   setCurrentSubject(next);
+setProgressUpdateTrigger(prev => prev + 1);
 
   // prepara novo bloco de ESTUDO
   backgroundTimer.pause();
@@ -337,8 +361,6 @@ useEffect(() => {
   }
 }, [currentSubject, localProgress, getPlannedMinutes, advanceToNextSubject]);
 
-  
-
   // Carregar dados do backend
   useEffect(() => {
     const fetchData = async () => {
@@ -359,6 +381,8 @@ useEffect(() => {
           setSettings({
             study_duration: settingsRes.data.study_duration || 50,
             break_duration: settingsRes.data.break_duration || 10,
+            long_break_duration: settingsRes.data.long_break_duration || 30,
+            long_break_interval: settingsRes.data.long_break_interval || 4
           });
           backgroundTimer.reset((settingsRes.data.study_duration || 50) * 60);
         }
@@ -412,91 +436,92 @@ useEffect(() => {
   }, [localProgress, currentSubject]);
 
   // Configurar callback de conclusão do timer
-  useEffect(() => {
-    backgroundTimer.onComplete(handleBlockComplete);
-  }, [currentPhase, currentSubject, settings, sessionId, blockHistory]);
+  // Antes: useEffect(() => { backgroundTimer.onComplete(handleBlockComplete); }, [...deps])
 
-  // Quando completar um bloco (100%)
-  const handleBlockComplete = async () => {
-    console.log('[handleBlockComplete] iniciando...', { currentPhase, currentSubject });
-    backgroundTimer.pause();
-    
-    // Tocar alarme E mostrar notificação
-    await alarmSystem.trigger(
-      '⏰ Timer Completo!',
-      currentPhase === 'study' ? 'Bloco de estudo completo!' : 'Pausa completa!'
-    );
+const handleBlockCompleteRef = useRef(null);
 
-    const newBlock = {
+// Quando completar um bloco (100%)
+const handleBlockComplete = useCallback(async () => {
+  console.log('[handleBlockComplete] iniciando...', { currentPhase, currentSubject });
+  backgroundTimer.pause();
+
+  await alarmSystem.trigger(
+    '⏰ Timer Completo!',
+    currentPhase === 'study' ? 'Bloco de estudo completo!' : 'Pausa completa!'
+  );
+
+  // monta o bloco concluído (minutos)
+  const concludedMinutes = currentPhase === 'study'
+    ? (settings?.study_duration || 50)
+    : (currentPhase === 'long_break'
+        ? (settings?.break_duration || 10) * 3
+        : (settings?.break_duration || 10));
+
+  const newBlock = {
       type: currentPhase,
       timestamp: new Date().toISOString(),
       duration: currentPhase === 'study' ? settings.study_duration : 
-                currentPhase === 'long_break' ? settings.break_duration * 3 : settings.break_duration
+                currentPhase === 'long_break' ? settings.long_break_duration : settings.break_duration
     };
 
-    if (currentPhase === 'study') {
-      // Bloco de estudo completado
-      if (!currentSubject) return;
+  if (currentPhase === 'study' && currentSubject) {
+    newBlock.subjectId = currentSubject.id;
 
-      newBlock.subjectId = currentSubject.id;
+    // 1) OTIMISTA: sobe a barra já
+    const goal = Number(currentSubject.time_goal || 0) || Infinity;
+    updateProgress(currentSubject.id, concludedMinutes, goal);
 
-      try {
-        await api.post('/study/end', {
-          session_id: sessionId,
-          duration: settings.study_duration,
-          skipped: false
-        });
-
-        console.log('[handleBlockComplete] atualizando progresso:', {
-          subjectId: currentSubject.id,
-          progressAntes: localProgress[currentSubject.id],
-          adicionando: settings.study_duration
-        });
-
-        // Atualizar progresso local
-        setLocalProgress(prev => {
-          const newProgress = {
-            ...prev,
-            [currentSubject.id]: (prev[currentSubject.id] || 0) + settings.study_duration
-          };
-          console.log('[handleBlockComplete] novo localProgress:', newProgress);
-          return newProgress;
-        });
-
-        // Recarregar stats
-        const statsRes = await api.get('/stats');
-        setStats(statsRes.data || {});
-
-        toast.success(`Bloco de ${currentSubject.name} completo! 🎉`);
-        setSessionId(null);
-      } catch (error) {
-        console.error('Erro ao salvar sessão:', error);
-        toast.error('Erro ao salvar progresso');
-      }
-    } else {
-      // Pausa completada
-      toast.success(`${phaseName} concluída!`);
+    // 2) dispara API sem travar a UI
+    try {
+      const resp = await api.post('/study/end', {
+        session_id: sessionId,
+        duration: concludedMinutes,
+        skipped: false
+      });
+      setSessionId(null);
+      // atualiza stats (opcional, só para cards/quests)
+      api.get('/stats').then(r => setStats(r.data || {})).catch(()=>{});
+      toast.success(`Bloco de ${currentSubject.name} completo! 🎉`);
+    } catch (error) {
+      console.error('Erro ao salvar sessão:', error);
+      toast.error('Erro ao salvar progresso (mantendo progresso local)');
+      // (se quiser, poderia reverter o progresso aqui)
     }
+  } else {
+    toast.success(`${currentPhase === 'long_break' ? 'Pausa Longa' : currentPhase === 'short_break' ? 'Pausa Curta' : 'Pausa'} concluída!`);
+  }
 
-    // Adicionar ao histórico
-    setBlockHistory(prev => [...prev, newBlock]);
+  // 3) registra no histórico (sempre pelo set funcional)
+  setBlockHistory(prev => [...prev, newBlock]);
 
-    // Preparar próxima fase
-    const nextPhase = currentPhase === 'study' 
-      ? (blockHistory.filter(b => b.type === 'study').length + 1) % 4 === 0 ? 'long_break' : 'short_break'
-      : 'study';
+  // 4) prepara próxima fase/tempo
+  // define a próxima fase e tempo
+const studyCountSoFar = (blockHistory.filter(b => b.type === 'study').length) + (currentPhase === 'study' ? 1 : 0);
+const nextPhase = currentPhase === 'study'
+  ? (studyCountSoFar % settings.long_break_interval === 0 ? 'long_break' : 'short_break')
+  : 'study';
 
-    const nextDuration = nextPhase === 'study' ? settings.study_duration : 
-                        nextPhase === 'long_break' ? settings.break_duration * 3 : settings.break_duration;
 
-    backgroundTimer.reset(nextDuration * 60);
+  const nextDuration = nextPhase === 'study'
+    ? (settings?.study_duration || 50)
+    : (nextPhase === 'long_break' ? (settings?.long_break_duration || 10): (settings?.break_duration || 10));
 
-    if (nextPhase !== 'study') {
-      toast.info(`Próximo: ${nextPhase === 'long_break' ? 'Pausa Longa 🌟' : 'Pausa Curta ☕'}`);
-    } else {
-      toast.info('Próximo: Estudo 📚');
-    }
-  };
+  backgroundTimer.reset(nextDuration * 60);
+  toast.info(nextPhase !== 'study' ? (nextPhase === 'long_break' ? 'Próximo: Pausa Longa 🌟' : 'Próximo: Pausa Curta ☕') : 'Próximo: Estudo 📚');
+}, [currentPhase, currentSubject, settings, sessionId, blockHistory, backgroundTimer]);
+
+handleBlockCompleteRef.current = handleBlockComplete;
+
+useEffect(() => {
+  if (!backgroundTimer || typeof backgroundTimer.onComplete !== "function") return;
+  // assume que onComplete retorna um "off"; se não retornar, o cleanup abaixo só ignora
+  const off = backgroundTimer.onComplete(() => {
+    // sempre usa a versão mais recente de handleBlockComplete
+    if (handleBlockCompleteRef.current) handleBlockCompleteRef.current();
+  });
+  return () => { try { off && off(); } catch (_) {} };
+}, [backgroundTimer]);
+
 
   // Iniciar/Pausar timer
   // --- Substitua a função toggleTimer por este bloco ---
@@ -573,17 +598,37 @@ const getPlannedSeconds = useCallback((subject) => {
   return 0;
 }, []);
 
+// Atualiza progresso local com clamp e novo objeto (força re-render) - CORRIGIDO
+const updateProgress = useCallback((subjectId, deltaMin, goalMin) => {
+  console.log('[updateProgress] chamado:', { subjectId, deltaMin, goalMin });
+  
+  setLocalProgress(prev => {
+    const oldMin = Math.max(0, Number(prev?.[subjectId] || 0));
+    const nextMin = Math.max(0, Math.min(
+      (goalMin ?? Infinity),
+      oldMin + Number(deltaMin || 0)
+    ));
+    
+    console.log('[updateProgress] atualizando:', { oldMin, deltaMin, nextMin });
+    
+    return { ...prev, [subjectId]: nextMin };
+  });
+  
+  // NOVO: Força re-render dos componentes
+  setProgressUpdateTrigger(prev => prev + 1);
+}, []);
+
 // Resetar o bloco atual: só reinicia o tempo do bloco da fase corrente
 const resetCurrentBlock = useCallback(() => {
   backgroundTimer.pause();
   const d = currentPhase === 'study'
     ? settings.study_duration
-    : (currentPhase === 'long_break' ? settings.break_duration * 3 : settings.break_duration);
+    : (currentPhase === 'long_break' ? settings.long_break_duration: settings.break_duration);
   backgroundTimer.reset(d * 60);
   toast.success('Bloco atual resetado');
 }, [currentPhase, settings, backgroundTimer]);
 
-// Voltar 1 bloco no histórico (e ajustar barra se foi estudo "real")
+// Voltar 1 bloco no histórico (e ajustar barra se foi estudo "real") - CORRIGIDO
 const previousBlock = useCallback(() => {
   if (blockHistory.length === 0) {
     toast.info('Não há bloco para voltar');
@@ -591,85 +636,107 @@ const previousBlock = useCallback(() => {
   }
 
   const last = blockHistory[blockHistory.length - 1];
-console.log('[previousBlock] voltando bloco:', last);
+  console.log('[previousBlock] voltando bloco:', last);
 
-  // Se o último bloco foi de estudo "real" (não pulado), desfaz a barra da matéria
-  if (last.type === 'study' && last.subjectId && !last.skipped) {
-    console.log('[previousBlock] desfazendo progresso:', {
-      subjectId: last.subjectId,
-      duration: last.duration,
-      progressAntes: localProgress[last.subjectId]
-    });
-    
-    setLocalProgress(prev => {
-      const newProgress = {
-        ...prev,
-        [last.subjectId]: Math.max(0, (prev[last.subjectId] || 0) - (last.duration || 0))
-      };
-      console.log('[previousBlock] novo localProgress:', newProgress);
-      return newProgress;
-    });
+  // duração confiável em minutos
+  const defaultStudyMin = settings?.study_duration || 50;
+  const defaultBreakMin = settings?.break_duration || 10;
+  const minutesToUndo =
+    typeof last?.duration === 'number'
+      ? last.duration
+      : (last?.type === 'study'
+          ? defaultStudyMin
+          : (last.type === 'long_break' ? settings.long_break_duration : settings.break_duration));
+
+  // 1) Se foi ESTUDO (real ou pulado), desfaz progresso
+  if (last?.type === 'study' && last?.subjectId) {
+    const subj = subjects.find(s => s.id === last.subjectId);
+    const goal = Number(subj?.time_goal || 0) || Infinity;
+    updateProgress(last.subjectId, -minutesToUndo, goal);
   }
 
-  // Remove do histórico
+  // 2) remove do histórico
   setBlockHistory(prev => prev.slice(0, -1));
 
-  // Recarrega o tempo para o bloco que foi desfeito (para refazer se quiser)
-  const prevDurationMin = last.duration || (
-    last.type === 'study'
-      ? settings.study_duration
-      : (last.type === 'long_break' ? settings.break_duration * 3 : settings.break_duration)
-  );
-
+  // 3) carrega o tempo do bloco que “voltou”
   backgroundTimer.pause();
-  backgroundTimer.reset(prevDurationMin * 60);
+  backgroundTimer.reset(minutesToUndo * 60);
   setSessionId(null);
 
   toast.success('Voltou 1 bloco');
-}, [blockHistory, settings, backgroundTimer, localProgress]);
+
+  // 4) força repaint das barras/lista
+  setProgressUpdateTrigger(prev => prev + 1);
+}, [blockHistory, subjects, settings, backgroundTimer, updateProgress]);
 
 
-// substitua seu handler de "pular" por este:
+
+
+
+// substitua seu handler de "pular" por este: - CORRIGIDO
 const skipBlock = useCallback(() => {
   if (currentPhase === 'study' && !currentSubject) {
     toast.error('Selecione uma matéria');
     return;
   }
 
-  // SE a matéria JÁ estiver 100% → trocar de matéria e continuar em estudo
-  if (currentPhase === 'study' && isCurrentSubjectComplete()) {
-    advanceToNextSubject();
-    return;
-  }
-
-  // Caso contrário: apenas pular a FASE (sem mexer no progresso)
   backgroundTimer.pause();
 
-  const newBlock = {
-    type: currentPhase,
-    timestamp: new Date().toISOString(),
-    duration: currentPhase === 'study'
+  const studyMin = settings?.study_duration || 50;
+  const breakMin = settings?.break_duration || 10;
+
+  if (currentPhase === 'study') {
+    // Se a matéria JÁ estiver 100%, troca de matéria e prepara novo estudo
+    if (isCurrentSubjectComplete()) {
+      advanceToNextSubject();
+      setProgressUpdateTrigger(p => p + 1);
+      return;
+    }
+
+    // Conta como estudo “pulando” (soma minutos na barra)
+    const goal = Number(currentSubject?.time_goal || 0) || Infinity;
+    updateProgress(currentSubject.id, studyMin, goal);
+
+    // registra no histórico como study (skipped = true) para que o previous desfaça
+    const newBlock = {
+      type: 'study',
+      timestamp: new Date().toISOString(),
+      duration: currentPhase === 'study'
       ? settings.study_duration
-      : (currentPhase === 'long_break' ? settings.break_duration * 3 : settings.break_duration),
+      : (currentPhase === 'long_break' ? settings.long_break_duration : settings.break_duration),
     skipped: true,
     ...(currentPhase === 'study' && currentSubject ? { subjectId: currentSubject.id } : {})
   };
+    setBlockHistory(prev => [...prev, newBlock]);
 
-  // registra o pulo no histórico (não soma barra!)
-  setBlockHistory(prev => [...prev, newBlock]);
+    // próxima fase: pausa curta/longa conforme contagem
+    const studyCountSoFar = blockHistory.filter(b => b.type === 'study').length + 1; // +1 deste skip
+    const nextPhase = (studyCountSoFar % 4 === 0) ? 'long_break' : 'short_break';
+    const nextDuration = nextPhase === 'long_break' ? breakMin * 3 : breakMin;
 
-  // define a próxima fase e tempo
-  const nextPhase = currentPhase === 'study'
-    ? ((blockHistory.filter(b => b.type === 'study').length + 1) % 4 === 0 ? 'long_break' : 'short_break')
-    : 'study';
+    backgroundTimer.reset(nextDuration * 60);
+    toast.info('Bloco de estudo pulado (contabilizado).');
 
-  const nextDuration = nextPhase === 'study'
-    ? settings.study_duration
-    : (nextPhase === 'long_break' ? settings.break_duration * 3 : settings.break_duration);
+  } else {
+    // Pulando pausa: não mexe em progresso
+    const newBlock = {
+      type: currentPhase,
+      timestamp: new Date().toISOString(),
+      duration: currentPhase === 'long_break' ? breakMin * 3 : breakMin,
+      skipped: true,
+      ...(currentSubject ? { subjectId: currentSubject.id } : {})
+    };
+    setBlockHistory(prev => [...prev, newBlock]);
 
-  backgroundTimer.reset(nextDuration * 60);
-  toast.info(`${currentPhase === 'study' ? 'Bloco' : 'Pausa'} pulado`);
-}, [currentPhase, currentSubject, isCurrentSubjectComplete, advanceToNextSubject, settings, blockHistory, backgroundTimer]);
+    // próxima fase: estudo
+    backgroundTimer.reset((settings?.study_duration || 50) * 60);
+    toast.info('Pausa pulada.');
+  }
+
+  // força repaint de tudo
+  setProgressUpdateTrigger(prev => prev + 1);
+}, [currentPhase, currentSubject, settings, blockHistory, backgroundTimer, isCurrentSubjectComplete, advanceToNextSubject, updateProgress]);
+
 
 
 
@@ -687,6 +754,9 @@ const skipBlock = useCallback(() => {
   backgroundTimer.pause();
   setSessionId(null);
   toast.success("Matéria atual resetada 100%");
+  
+  // NOVO: Força re-render
+  setProgressUpdateTrigger(prev => prev + 1);
 };
 
 const resetCycle = () => {
@@ -696,6 +766,9 @@ const resetCycle = () => {
   setLocalProgress({});
   backgroundTimer.reset((settings?.study_duration || 50) * 60);
   toast.success("Ciclo resetado");
+  
+  // NOVO: Força re-render
+  setProgressUpdateTrigger(prev => prev + 1);
 };
 
 
@@ -790,27 +863,30 @@ const resetCycle = () => {
     }
   };
 
-   // Cálculos de progresso - memoizado com useCallback
-   const getSubjectProgress = useCallback((subjectId) => {
+   // Cálculos de progresso - SEM MEMO para garantir recálculo sempre
+   const getSubjectProgress = (subjectId) => {
     const subject = subjects.find(s => s.id === subjectId);
-    if (!subject) return 0;
+    if (!subject) {
+      console.log('[getSubjectProgress] matéria não encontrada:', subjectId);
+      return 0;
+    }
 
     const completed = localProgress[subjectId] || 0;
     const goal = subject.time_goal || 1;
     const progress = Math.min(100, (completed / goal) * 100);
     
-    console.log('[getSubjectProgress]', { subjectId, completed, goal, progress });
+    console.log('[getSubjectProgress]', { subjectId, completed, goal, progress, localProgress });
     return progress;
-  }, [subjects, localProgress]);
+  };
 
-  const currentSubjectProgress = useMemo(() => {
+  const currentSubjectProgress = (() => {
     if (!currentSubject) return 0;
     const progress = getSubjectProgress(currentSubject.id);
     console.log('[currentSubjectProgress]', { currentSubjectId: currentSubject.id, progress });
     return progress;
-  }, [currentSubject, getSubjectProgress]);
+  })();
 
-  const cycleProgress = useMemo(() => {
+  const cycleProgress = (() => {
     if (subjects.length === 0) return 0;
 
     const totalGoal = subjects.reduce((sum, s) => sum + (s.time_goal || 0), 0);
@@ -818,8 +894,10 @@ const resetCycle = () => {
       return sum + (localProgress[s.id] || 0);
     }, 0);
 
-    return totalGoal > 0 ? Math.min(100, (totalCompleted / totalGoal) * 100) : 0;
-  }, [subjects, localProgress]);
+    const progress = totalGoal > 0 ? Math.min(100, (totalCompleted / totalGoal) * 100) : 0;
+    console.log('[cycleProgress]', { totalGoal, totalCompleted, progress });
+    return progress;
+  })();
 
   const totalStudied = useMemo(() => {
    // soma estudo + short_break + long_break
@@ -964,8 +1042,8 @@ const resetCycle = () => {
                   </>
                 ) : (
                   <p className="text-sm text-gray-400">
-                    {phaseEmoji} {currentPhase === 'long_break' 
-                      ? 'Relaxe e recarregue as energias!' 
+                    {phaseEmoji} {currentPhase === 'long_break'
+                      ? 'Relaxe e recarregue as energias!'
                       : 'Aproveite para descansar um pouco!'}
                   </p>
                 )}
@@ -981,15 +1059,15 @@ const resetCycle = () => {
               {/* Timer Display */}
               <div className="text-center mb-8">
                 <div className="text-9xl font-bold mb-2 tracking-tight font-mono transition-colors duration-300 drop-shadow-2xl"
-                     style={{ 
+                     style={{
                        color: phaseColor,
                        textShadow: `0 0 40px ${phaseColor}60`
                      }}>
                   {formatTime(backgroundTimer.timeLeft)}
                 </div>
                 <p className="text-gray-400 text-lg font-medium">
-                  {currentPhase === 'study' ? `${settings.study_duration} min` : 
-                   currentPhase === 'long_break' ? `${settings.break_duration * 3} min` : 
+                  {currentPhase === 'study' ? `${settings.study_duration} min` :
+                   currentPhase === 'long_break' ? `${settings.long_break_duration} min` :
                    `${settings.break_duration} min`}
                 </p>
               </div>
@@ -1078,14 +1156,15 @@ const resetCycle = () => {
                 </div>
               </div>
 
-              {/* Barras de Progresso */}
+              {/* Barras de Progresso - CORRIGIDO sem keys */}
               <div className="space-y-6 bg-gradient-to-br from-slate-900/40 to-slate-800/40 rounded-2xl p-6 backdrop-blur border border-slate-700/30">
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-gray-300 font-medium">Progresso do conteúdo atual</span>
                     <span className="text-cyan-400 font-bold text-base">{currentSubjectProgress.toFixed(0)}%</span>
                   </div>
-                  <Bar value={currentSubjectProgress} />
+                  <Bar value={currentSubjectProgress} forceUpdateKey={progressUpdateTrigger} />
+
                 </div>
 
                 <div>
@@ -1093,7 +1172,8 @@ const resetCycle = () => {
                     <span className="text-gray-300 font-medium">Progresso do ciclo</span>
                     <span className="text-cyan-400 font-bold text-base">{cycleProgress.toFixed(0)}%</span>
                   </div>
-                  <Bar value={cycleProgress} />
+                  <Bar value={cycleProgress} forceUpdateKey={progressUpdateTrigger} />
+
                 </div>
               </div>
             </div>
@@ -1124,7 +1204,7 @@ const resetCycle = () => {
                         let offset = 0;
                         const GAP_DEGREES = 0.15;
                         const totalGoal = subjects.reduce((s, x) => s + (x.time_goal || 0), 0);
-                        
+
                         return subjects.map(subject => {
                           const percentage = totalGoal > 0 ? ((subject.time_goal || 0) / totalGoal) * 100 : 100 / subjects.length;
                           const startDegRaw = -90 + (offset * 360) / 100;
@@ -1145,13 +1225,13 @@ const resetCycle = () => {
                     {(() => {
                       let offset = 0;
                       const totalGoal = subjects.reduce((s, x) => s + (x.time_goal || 0), 0);
-                      
+
                       return subjects.map((subject) => {
                         const percentage = totalGoal > 0 ? ((subject.time_goal || 0) / totalGoal) * 100 : 100 / subjects.length;
                         offset += percentage;
                         const id = `arc-${subject.id}`;
                         const isActive = currentSubject?.id === subject.id;
-                        
+
                         return (
                           <use
                             key={`stroke-${id}`}
@@ -1160,7 +1240,8 @@ const resetCycle = () => {
                             strokeWidth={isActive ? 54 : 50}
                             fill="none"
                             pathLength="100"
-                            onClick={() => setCurrentSubject(subject)}
+                            onClick={() => { setCurrentSubject(subject); setProgressUpdateTrigger(p => p + 1); }}
+
                             style={{
                               cursor: 'pointer',
                               filter: isActive ? `drop-shadow(0 0 12px ${subject.color}CC)` : 'none',
@@ -1178,12 +1259,12 @@ const resetCycle = () => {
                       let offset = 0;
                       const GAP_DEGREES = 0.15;
                       const totalGoal = subjects.reduce((s, x) => s + (x.time_goal || 0), 0);
-                      
+
                       return subjects.map((subject) => {
                         const percentage = totalGoal > 0 ? ((subject.time_goal || 0) / totalGoal) * 100 : 100 / subjects.length;
                         const id = `arc-${subject.id}`;
                         const isActive = currentSubject?.id === subject.id;
-                        
+
                         const startDegRaw = -90 + (offset * 360) / 100;
                         const sweepRaw = (percentage * 360) / 100;
                         const startDeg = startDegRaw + GAP_DEGREES;
@@ -1199,10 +1280,11 @@ const resetCycle = () => {
                               href={`#${id}`}
                               startOffset="50%"
                               textAnchor="middle"
-                              onClick={() => setCurrentSubject(subject)}
-                              style={{ 
+                              onClick={() => { setCurrentSubject(subject); setProgressUpdateTrigger(p => p + 1); }}
+
+                              style={{
                                 fontSize: isActive ? 8 : 7.5,
-                                fontWeight: 900, 
+                                fontWeight: 900,
                                 cursor: 'pointer',
                                 letterSpacing: '0.02em',
                                 transition: 'font-size 200ms ease',
@@ -1222,7 +1304,7 @@ const resetCycle = () => {
                     <div className="relative">
                       <div className="absolute inset-0 -m-10 rounded-full bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 animate-pulse" style={{animationDuration: '3s'}} />
                       <div className="absolute inset-0 -m-12 rounded-full bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-cyan-500/5 animate-pulse" style={{animationDuration: '4s', animationDelay: '1s'}} />
-                      
+
                       <div className="relative text-center bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-md rounded-full px-7 py-5 border-2 border-cyan-500/30 shadow-2xl shadow-cyan-500/20">
                         <p className="text-xs text-cyan-300 font-bold mb-1 tracking-wider uppercase">Mapa do</p>
                         <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-purple-300 tracking-tight">CICLO</p>
@@ -1257,20 +1339,21 @@ const resetCycle = () => {
                         return (
                           <div
                             key={subject.id}
-                            onClick={() => setCurrentSubject(subject)}
+                            onClick={() => { setCurrentSubject(subject); setProgressUpdateTrigger(p => p + 1); }}
+
                             className={`flex items-center justify-between text-sm p-3 rounded-xl cursor-pointer transition-all duration-300 ${
-                              isActive 
-                                ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 shadow-lg shadow-cyan-500/10' 
+                              isActive
+                                ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 shadow-lg shadow-cyan-500/10'
                                 : 'hover:bg-slate-700/30 border border-transparent'
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <div 
-                                className={`w-3 h-3 rounded-full transition-all duration-300 ${isActive ? 'scale-125' : ''}`} 
-                                style={{ 
+                              <div
+                                className={`w-3 h-3 rounded-full transition-all duration-300 ${isActive ? 'scale-125' : ''}`}
+                                style={{
                                   backgroundColor: subject.color,
                                   boxShadow: isActive ? `0 0 12px ${subject.color}` : 'none'
-                                }} 
+                                }}
                               />
                               <span className={`${isActive ? 'text-white font-bold' : 'text-gray-300'} transition-all`}>
                                 {index + 1}. {subject.name}
@@ -1332,7 +1415,7 @@ const resetCycle = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     <div className="mb-2">
                       <h3 className={`font-bold text-xs mb-1 ${quest.completed ? 'text-green-300' : 'text-white'}`}>
                         {quest.title}
@@ -1407,17 +1490,23 @@ const resetCycle = () => {
             >
               <SortableContext items={subjects.map(s => s.id)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-2">
-                  {subjects.map(subject => (
-                    <SortableSubjectItem
-                      key={subject.id}
-                      subject={subject}
-                      isActive={currentSubject?.id === subject.id}
-                      onClick={() => setCurrentSubject(subject)}
-                      onEdit={setShowEditSubject}
-                      onDelete={handleDeleteSubject}
-                      progress={getSubjectProgress(subject.id)}
-                    />
-                  ))}
+                  {subjects.map(subject => {
+  const progress = getSubjectProgress(subject.id);
+  return (
+    <SortableSubjectItem
+      key={`${subject.id}-${progressUpdateTrigger}`}
+      subject={subject}
+      isActive={currentSubject?.id === subject.id}
+      onClick={() => { setCurrentSubject(subject); setProgressUpdateTrigger(p => p + 1); }}
+      onEdit={setShowEditSubject}
+      onDelete={handleDeleteSubject}
+      progress={progress}
+      forceUpdateKey={progressUpdateTrigger}
+    />
+  );
+})}
+
+
                 </div>
               </SortableContext>
 
@@ -1497,15 +1586,15 @@ const resetCycle = () => {
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button 
-                onClick={handleAddSubject} 
+              <Button
+                onClick={handleAddSubject}
                 className="flex-1 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 font-semibold shadow-lg shadow-cyan-500/30"
               >
                 Adicionar
               </Button>
-              <Button 
-                onClick={() => setShowAddSubject(false)} 
-                variant="outline" 
+              <Button
+                onClick={() => setShowAddSubject(false)}
+                variant="outline"
                 className="border-slate-600 text-gray-300 hover:bg-slate-700/50 hover:text-white"
               >
                 Cancelar
@@ -1576,9 +1665,9 @@ const resetCycle = () => {
                 >
                   Salvar
                 </Button>
-                <Button 
-                  onClick={() => setShowEditSubject(null)} 
-                  variant="outline" 
+                <Button
+                  onClick={() => setShowEditSubject(null)}
+                  variant="outline"
                   className="border-slate-600 text-gray-300 hover:bg-slate-700/50 hover:text-white"
                 >
                   Cancelar
@@ -1593,5 +1682,3 @@ const resetCycle = () => {
 
 }
 export default DashboardFixed;
-     
-       
