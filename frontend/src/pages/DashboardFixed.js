@@ -262,6 +262,8 @@ function DashboardFixed() {
   const [showEditSubject, setShowEditSubject] = useState(null);
   const [newSubject, setNewSubject] = useState({ name: '', color: '#3B82F6', time_goal: 300 });
   const [activeId, setActiveId] = useState(null);
+  const [isManualSubjectSelection, setIsManualSubjectSelection] = useState(false); // Rastreia se foi seleção manual
+
 
   const hasRequestedPermission = useRef(false);
 
@@ -337,30 +339,20 @@ const advanceToNextSubject = useCallback(() => {
   if (idx === -1) return;
   const next = subjects[(idx + 1) % subjects.length];
 
-  // troca a matéria
+  // troca a matéria (mudança automática)
   setCurrentSubject(next);
+  setIsManualSubjectSelection(false); // Marca como mudança automática
   setProgressUpdateTrigger(prev => prev + 1);
 
-  // CORREÇÃO: Verificar se o próximo bloco deve ser uma pausa longa
-  // Conta quantos blocos de estudo foram completados
-  const studyBlocksCompleted = blockHistory.filter(b => b.type === 'study').length;
-  
-  // Se completou múltiplo de long_break_interval (padrão: 4), próximo é pausa longa
-  const shouldBeLongBreak = studyBlocksCompleted > 0 && 
-                            studyBlocksCompleted % (settings?.long_break_interval || 4) === 0;
-  
   backgroundTimer.pause();
   
-  if (shouldBeLongBreak) {
-    // Configurar para pausa longa
-    backgroundTimer.reset((settings?.long_break_duration || 30) * 60);
-    toast.info(`Pausa Longa antes de: ${next.name} 🌟`);
-  } else {
-    // Configurar para novo bloco de estudo
-    backgroundTimer.reset((settings?.study_duration || 50) * 60);
-    toast.info(`Próxima matéria: ${next.name}`);
-  }
-}, [subjects, currentSubject, settings, backgroundTimer, blockHistory]);
+  // CORREÇÃO: Não resetar o timer aqui, apenas trocar a matéria
+  // O timer já está configurado corretamente pela fase atual (currentPhase)
+  // que foi determinada pelo histórico de blocos
+  
+  // Apenas mostrar mensagem informativa
+  toast.info(`Próxima matéria: ${next.name}`);
+}, [subjects, currentSubject, backgroundTimer]);
 
 
 useEffect(() => {
@@ -653,8 +645,7 @@ const previousBlock = useCallback(() => {
   const last = blockHistory[blockHistory.length - 1];
   console.log('[previousBlock] voltando bloco:', last);
 
-  // NOVA VALIDAÇÃO: Impedir voltar o primeiro bloco de uma nova matéria
-  // Verifica se o último bloco é o primeiro de uma nova matéria
+  // Impedir voltar se o último bloco é o primeiro bloco de uma matéria
   if (last?.type === 'study' && last?.subjectId) {
     // Busca blocos anteriores no histórico (excluindo o último)
     const previousBlocks = blockHistory.slice(0, -1);
@@ -671,20 +662,21 @@ const previousBlock = useCallback(() => {
     }
   }
   
-  // VALIDAÇÃO ADICIONAL: Se o último bloco é uma pausa longa que vem logo após trocar de matéria
-  if (last?.type === 'long_break') {
-    // Pega todos os blocos de estudo no histórico
+  // Impedir voltar se o último bloco é uma pausa que precede uma nova matéria
+  // EXCETO se foi seleção manual da matéria
+  if ((last?.type === 'short_break' || last?.type === 'long_break') && !isManualSubjectSelection) {
+    // Verifica se essa pausa está antes de uma nova matéria
+    // Pega todos os blocos de estudo
     const studyBlocks = blockHistory.filter(b => b.type === 'study');
     
     if (studyBlocks.length > 0) {
-      // Pega o último bloco de estudo antes desta pausa longa
       const lastStudyBlock = studyBlocks[studyBlocks.length - 1];
       
-      // Verifica se após este último estudo vem uma nova matéria
-      // (se o próximo estudo seria de outra matéria)
+      // Se a matéria atual é diferente da última matéria estudada,
+      // essa pausa está entre duas matérias diferentes
       if (currentSubject && lastStudyBlock.subjectId !== currentSubject.id) {
-        // Esta pausa longa é o primeiro bloco antes de uma nova matéria
-        toast.error('Não é possível voltar o primeiro bloco de uma matéria');
+        const pauseType = last.type === 'long_break' ? 'pausa longa' : 'pausa curta';
+        toast.error(`Não é possível voltar a ${pauseType} antes de uma nova matéria`);
         return;
       }
     }
@@ -719,7 +711,7 @@ const previousBlock = useCallback(() => {
 
   // 4) força repaint das barras/lista
   setProgressUpdateTrigger(prev => prev + 1);
-}, [blockHistory, subjects, settings, backgroundTimer, updateProgress, currentSubject]);
+}, [blockHistory, subjects, settings, backgroundTimer, updateProgress, currentSubject, isManualSubjectSelection]);
 
 
 
@@ -1289,7 +1281,7 @@ const resetCycle = () => {
                             key={`${subject.id}-${progressUpdateTrigger}`}
                             subject={subject}
                             isActive={currentSubject?.id === subject.id}
-                            onClick={() => { setCurrentSubject(subject); setProgressUpdateTrigger(p => p + 1); }}
+                            onClick={() => { setCurrentSubject(subject); setIsManualSubjectSelection(true); setProgressUpdateTrigger(p => p + 1); }}
                             onEdit={setShowEditSubject}
                             onDelete={handleDeleteSubject}
                             progress={progress}
@@ -1380,7 +1372,7 @@ const resetCycle = () => {
                             strokeWidth={isActive ? 54 : 50}
                             fill="none"
                             pathLength="100"
-                            onClick={() => { setCurrentSubject(subject); setProgressUpdateTrigger(p => p + 1); }}
+                            onClick={() => { setCurrentSubject(subject); setIsManualSubjectSelection(true); setProgressUpdateTrigger(p => p + 1); }}
 
                             style={{
                               cursor: 'pointer',
@@ -1420,7 +1412,7 @@ const resetCycle = () => {
                               href={`#${id}`}
                               startOffset="50%"
                               textAnchor="middle"
-                              onClick={() => { setCurrentSubject(subject); setProgressUpdateTrigger(p => p + 1); }}
+                              onClick={() => { setCurrentSubject(subject); setIsManualSubjectSelection(true); setProgressUpdateTrigger(p => p + 1); }}
 
                               style={{
                                 fontSize: isActive ? 8 : 7.5,
@@ -1479,7 +1471,7 @@ const resetCycle = () => {
                         return (
                           <div
                             key={subject.id}
-                            onClick={() => { setCurrentSubject(subject); setProgressUpdateTrigger(p => p + 1); }}
+                            onClick={() => { setCurrentSubject(subject); setIsManualSubjectSelection(true); setProgressUpdateTrigger(p => p + 1); }}
 
                             className={`flex items-center justify-between text-sm p-3 rounded-xl cursor-pointer transition-all duration-300 ${
                               isActive
