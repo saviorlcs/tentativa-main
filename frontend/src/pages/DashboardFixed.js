@@ -585,29 +585,37 @@ const handleBlockComplete = useCallback(async () => {
 
     // 2) dispara API sem travar a UI
     try {
+      console.log('[handleBlockComplete] Enviando para API:', { session_id: sessionId, duration: concludedMinutesTimer, skipped: false });
+      
       const resp = await api.post('/study/end', {
         session_id: sessionId,
         duration: concludedMinutesTimer,
         skipped: false
       });
+      
+      console.log('[handleBlockComplete] Resposta da API:', resp.data);
       setSessionId(null);
       
       // Atualiza stats e processa XP/coins
       const freshStats = await api.get('/stats');
       setStats(freshStats.data || {});
       
-      // Mostra ganhos de XP e coins
-      if (resp.data?.coins_earned > 0) {
-        toast.success(`Bloco de ${currentSubject.name} completo! +${resp.data.coins_earned} coins, +${resp.data.xp_earned} XP! 🎉`);
+      // SEMPRE mostra ganhos de XP e coins (mesmo que seja 0)
+      const coinsEarned = resp.data?.coins_earned || 0;
+      const xpEarned = resp.data?.xp_earned || 0;
+      
+      if (coinsEarned > 0 || xpEarned > 0) {
+        toast.success(`✅ Bloco de ${currentSubject.name} completo!\n💰 +${coinsEarned} coins\n⭐ +${xpEarned} XP`, { duration: 5000 });
       } else {
-        toast.success(`Bloco de ${currentSubject.name} completo! 🎉`);
+        toast.warning(`⚠️ Bloco completo mas nenhuma recompensa foi recebida!\n💰 Coins: ${coinsEarned}\n⭐ XP: ${xpEarned}`, { duration: 5000 });
       }
       
       // Atualiza user data para refletir XP/coins
       refreshUser();
     } catch (error) {
-      console.error('Erro ao salvar sessão:', error);
-      toast.error('Erro ao salvar progresso (mantendo progresso local)');
+      console.error('❌ [handleBlockComplete] Erro ao salvar sessão:', error);
+      console.error('Detalhes do erro:', error.response?.data || error.message);
+      toast.error(`❌ Erro ao salvar progresso!\nVerifique o console para detalhes.\nProgresso local mantido.`, { duration: 5000 });
     }
   } else {
     // PAUSAS TAMBÉM CONTAM NA BARRA
@@ -723,14 +731,24 @@ const toggleTimer = async () => {
         setIsManualSubjectSelection(false);
         
         try {
+          console.log('[toggleTimer] 📝 Criando sessão de estudo para:', currentSubject.name);
           const response = await api.post('/study/start', { subject_id: currentSubject.id });
-          setSessionId(response.data?.id || null);
-          console.log('[toggleTimer] sessão criada', response.data);
+          const newSessionId = response.data?.id || null;
+          setSessionId(newSessionId);
+          console.log('[toggleTimer] ✅ Sessão criada com sucesso! Session ID:', newSessionId);
+          console.log('[toggleTimer] Dados completos da resposta:', response.data);
+          
+          if (!newSessionId) {
+            console.warn('⚠️ [toggleTimer] ATENÇÃO: Session ID veio vazio/null! Recompensas NÃO serão concedidas!');
+            toast.warning('⚠️ Sessão criada sem ID. Você pode não receber recompensas!');
+          }
         } catch (error) {
-          console.error('[toggleTimer] API start error', error);
-          console.warn('[toggleTimer] Continuando sem sessão do backend...');
-          // Continua mesmo se a API falhar (útil para teste ou modo offline)
-          // return; // Comentado para permitir funcionamento sem backend
+          console.error('❌ [toggleTimer] ERRO ao criar sessão:', error);
+          console.error('Detalhes do erro:', error.response?.data || error.message);
+          toast.error('❌ Erro ao criar sessão de estudo! Você NÃO receberá coins/XP neste bloco!');
+          setSessionId(null);
+          // IMPORTANTE: Agora mostramos o erro claramente ao usuário
+          // return; // Comentado para permitir funcionamento sem backend (mas sem recompensas)
         }
       }
 
@@ -1290,13 +1308,30 @@ const resetCycle = () => {
               {/* Avatar + Título */}
               <div className="text-center mb-6">
                 {user && (
-                  <div className="inline-flex items-center justify-center mb-4">
+                  <div className="inline-flex flex-col items-center justify-center mb-4">
                     <ModernSealAvatar
                       user={user}
                       item={shopItems.find(item => item.id === user.equipped_items?.seal)}
                       size={80}
                       className="shadow-2xl"
                     />
+                    {/* Display de Coins e XP */}
+                    <div className="flex gap-4 mt-3 items-center">
+                      <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 px-4 py-2 rounded-full border border-yellow-500/30">
+                        <span className="text-2xl">💰</span>
+                        <div className="text-left">
+                          <div className="text-xs text-yellow-300 font-medium">Coins</div>
+                          <div className="text-lg font-bold text-yellow-400">{user.coins || 0}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 px-4 py-2 rounded-full border border-cyan-500/30">
+                        <span className="text-2xl">⭐</span>
+                        <div className="text-left">
+                          <div className="text-xs text-cyan-300 font-medium">XP (Nível {user.level || 1})</div>
+                          <div className="text-lg font-bold text-cyan-400">{user.xp || 0}</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
                 {!user && (

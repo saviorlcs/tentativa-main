@@ -842,10 +842,10 @@ async def google_callback(request: Request, code: str | None = None, state: str 
         "id": uid,
         "email": info.get("email"),
         "name": info.get("name") or "User",
-        "avatar": info.get("picture"),
+        "picture": info.get("picture"),  # Corrigido: era 'avatar', agora é 'picture'
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    await db.users.update_one({"id": uid}, {"$setOnInsert": {"coins": 0, "xp": 0, "level": 1}, "$set": user_doc}, upsert=True)
+    await db.users.update_one({"id": uid}, {"$setOnInsert": {"coins": 0, "xp": 0, "level": 1, "items_owned": [], "equipped_items": {"seal": None, "border": None, "theme": None}}, "$set": user_doc}, upsert=True)
 
     # JWT e cookie
     payload = {"sub": uid, "exp": datetime.now(timezone.utc) + timedelta(days=30)}
@@ -1009,6 +1009,286 @@ async def delete_account(request: Request, session_token: Optional[str] = Cookie
     resp.delete_cookie("session_token", path="/", httponly=True, secure=is_production, samesite="None" if is_production else "lax")
     resp.delete_cookie("csrf_token", path="/", httponly=False, secure=is_production, samesite="None" if is_production else "lax")
     return resp
+
+
+# ==================== PROFILE ENDPOINTS ====================
+
+@api_router.get("/profile/{user_id}/stats")
+async def get_profile_stats(
+    user_id: str,
+    period: str = Query(default="30d", regex="^(7d|14d|30d|90d|180d|360d|all)$"),
+    request: Request = None,
+    session_token: Optional[str] = Cookie(None)
+):
+    """
+    Retorna estatísticas do perfil de um usuário.
+    Usuário deve estar logado. Pode ver próprio perfil ou de amigos.
+    """
+    # Verifica se está logado
+    me = await get_current_user(request, session_token)
+    
+    # Busca o usuário alvo
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Calcula período em dias
+    period_days_map = {
+        "7d": 7,
+        "14d": 14,
+        "30d": 30,
+        "90d": 90,
+        "180d": 180,
+        "360d": 360,
+        "all": 36500  # ~100 anos
+    }
+    days = period_days_map.get(period, 30)
+    
+    # Data de início do período
+    now = datetime.now(timezone.utc)
+    start_date = now - timedelta(days=days)
+    start_iso = start_date.isoformat()
+    
+    # Busca todas as sessões completas no período
+    sessions = await db.study_sessions.find(
+        {
+            "user_id": user_id,
+            "completed": True,
+            "start_time": {"$gte": start_iso}
+        },
+        {"_id": 0, "start_time": 1, "duration": 1, "skipped": 1}
+    ).to_list(100000)
+    
+    # Calcula estatísticas
+    total_minutes = 0
+    blocks_completed = 0
+    active_dates = set()
+    
+    for session in sessions:
+        duration = int(session.get("duration", 0))
+        skipped = session.get("skipped", False)
+        
+        total_minutes += duration
+        
+        # Bloco completo = sessão completa e não pulada
+        if not skipped:
+            blocks_completed += 1
+        
+        # Extrai data (sem hora) para contar dias únicos
+        try:
+            start_time = datetime.fromisoformat(session["start_time"])
+            date_only = start_time.date().isoformat()
+            active_dates.add(date_only)
+        except:
+            pass
+    
+    active_days = len(active_dates)
+    average_per_day = (total_minutes / active_days) if active_days > 0 else 0
+    
+    # Busca streak atual do usuário
+    streak_days = int(target_user.get("streak_days", 0))
+    
+    # Busca ciclos completos no período
+    cycles = await db.cycles.find(
+        {
+            "user_id": user_id,
+            "status": "completed",
+            "week_start": {"$gte": start_iso}
+        },
+        {"_id": 0}
+    ).to_list(10000)
+    
+    # Conta apenas ciclos que atingiram 100% da meta
+    cycles_completed = 0
+    for cycle in cycles:
+        goal = cycle.get("total_time_goal", 0)
+        studied = cycle.get("total_time_studied", 0)
+        if goal > 0 and studied >= goal:
+            cycles_completed += 1
+    
+    # Calcula XP necessário para próximo nível
+    current_level = target_user.get("level", 1)
+    current_xp = target_user.get("xp", 0)
+    xp_for_next = _xp_curve_per_level(current_level)
+    
+    return {
+        "user": {
+            "id": target_user["id"],
+            "nickname": target_user.get("nickname"),
+            "tag": target_user.get("tag"),
+            "name": target_user.get("name"),
+            "avatar": target_user.get("avatar") or target_user.get("picture"),
+            "level": current_level,
+            "xp": current_xp,
+            "xp_for_next_level": xp_for_next,
+            "coins": target_user.get("coins", 0)
+        },
+        "stats": {
+            "total_focus_time_minutes": total_minutes,
+            "total_focus_time_hours": round(total_minutes / 60, 1),
+            "streak_days": streak_days,
+            "active_days": active_days,
+            "average_per_day_minutes": round(average_per_day, 1),
+            "cycles_completed": cycles_completed,
+            "blocks_completed": blocks_completed
+        },
+        "period": period,
+        "period_days": days
+    }
+
+
+@api_router.get("/profile/{user_id}/calendar")
+async def get_profile_calendar(
+    user_id: str,
+    year: int = Query(default=None),
+    request: Request = None,
+    session_token: Optional[str] = Cookie(None)
+):
+    """
+    Retorna dados do calendário de consistência (heatmap) para o ano especificado.
+    """
+    # Verifica se está logado
+    me = await get_current_user(request, session_token)
+    
+    # Busca o usuário alvo
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Ano padrão = ano atual
+    if year is None:
+        year = datetime.now(timezone.utc).year
+    
+    # Datas de início e fim do ano
+    start_of_year = datetime(year, 1, 1, tzinfo=timezone.utc)
+    end_of_year = datetime(year, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    
+    start_iso = start_of_year.isoformat()
+    end_iso = end_of_year.isoformat()
+    
+    # Busca todas as sessões do ano
+    sessions = await db.study_sessions.find(
+        {
+            "user_id": user_id,
+            "completed": True,
+            "start_time": {"$gte": start_iso, "$lte": end_iso}
+        },
+        {"_id": 0, "start_time": 1, "duration": 1}
+    ).to_list(100000)
+    
+    # Agrupa por data
+    days_data = {}
+    for session in sessions:
+        try:
+            start_time = datetime.fromisoformat(session["start_time"])
+            date_only = start_time.date().isoformat()
+            duration = int(session.get("duration", 0))
+            
+            if date_only not in days_data:
+                days_data[date_only] = 0
+            days_data[date_only] += duration
+        except:
+            pass
+    
+    # Converte para lista
+    days_list = [
+        {"date": date, "minutes": minutes}
+        for date, minutes in sorted(days_data.items())
+    ]
+    
+    return {
+        "year": year,
+        "days": days_list,
+        "total_days_active": len(days_list)
+    }
+
+
+@api_router.get("/profile/export")
+async def export_profile_data(
+    format: str = Query(default="json", regex="^(json|csv)$"),
+    request: Request = None,
+    session_token: Optional[str] = Cookie(None)
+):
+    """
+    Exporta todos os dados do perfil do usuário logado.
+    """
+    from fastapi.responses import StreamingResponse
+    import io
+    import csv
+    import json
+    
+    me = await get_current_user(request, session_token)
+    
+    # Busca todos os dados do usuário
+    user_data = await db.users.find_one({"id": me.id}, {"_id": 0})
+    
+    # Busca sessões
+    sessions = await db.study_sessions.find(
+        {"user_id": me.id},
+        {"_id": 0}
+    ).to_list(100000)
+    
+    # Busca matérias
+    subjects = await db.subjects.find(
+        {"user_id": me.id},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    # Busca ciclos
+    cycles = await db.cycles.find(
+        {"user_id": me.id},
+        {"_id": 0}
+    ).to_list(1000)
+    
+    if format == "json":
+        # Exporta como JSON
+        export_data = {
+            "user": user_data,
+            "sessions": sessions,
+            "subjects": subjects,
+            "cycles": cycles,
+            "exported_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        json_str = json.dumps(export_data, indent=2, default=str)
+        
+        return StreamingResponse(
+            io.BytesIO(json_str.encode()),
+            media_type="application/json",
+            headers={
+                "Content-Disposition": f"attachment; filename=profile_export_{me.id}_{datetime.now(timezone.utc).strftime('%Y%m%d')}.json"
+            }
+        )
+    
+    else:  # CSV
+        # Exporta sessões como CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Header
+        writer.writerow(["start_time", "duration_minutes", "subject_id", "completed", "skipped", "coins_earned", "xp_earned"])
+        
+        # Dados
+        for session in sessions:
+            writer.writerow([
+                session.get("start_time", ""),
+                session.get("duration", 0),
+                session.get("subject_id", ""),
+                session.get("completed", False),
+                session.get("skipped", False),
+                session.get("coins_earned", 0),
+                session.get("xp_earned", 0)
+            ])
+        
+        output.seek(0)
+        
+        return StreamingResponse(
+            io.BytesIO(output.getvalue().encode()),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=sessions_export_{me.id}_{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"
+            }
+        )
 
 
 from fastapi import Depends, Request, Cookie, Header, HTTPException

@@ -151,7 +151,10 @@ export default function HeaderNew({ user: userProp }) {
             <div className="flex items-center gap-3">
               {user ? (
                 <>
-                  <div className="hidden sm:flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-800/50 border border-cyan-500/30 backdrop-blur-sm hover:border-cyan-500/50 transition-all duration-300 app-surface">
+                   <div 
+                    onClick={() => navigate("/profile")}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/50 transition-all cursor-pointer app-surface"
+                  >
                     <SealAvatar
                       size={36}
                       user={user}

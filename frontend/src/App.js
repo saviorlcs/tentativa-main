@@ -27,7 +27,7 @@ import MusicPlayer from "./components/MusicPlayer";
 import { Music } from "lucide-react";
 import * as siteStyle from "./lib/siteStyle";
 import { AppProvider, useApp } from "@/context/AppContext";
-
+import Profile from "./pages/Profile";
 /* ---------------- Ping simples ao /api (equivalente ao primeiro código) ---------------- */
 function HelloProbe() {
   useEffect(() => {
@@ -62,7 +62,11 @@ function AuthHandler() {
     let alive = true;
     (async () => {
       try {
-        // Skip auth check in callback page (it handles its own auth)
+        // Rotas públicas que não precisam de autenticação
+        const publicRoutes = ["/", "/sobre", "/auth/callback"];
+        const isPublicRoute = publicRoutes.includes(location.pathname);
+        
+        // Skip auth check in public routes except for the home page redirect logic
         if (location.pathname === "/auth/callback") {
           setChecking(false);
           return;
@@ -89,6 +93,9 @@ function AuthHandler() {
           if (path === "/") {
             if (u?.id && hasNick) navigate("/dashboard", { replace: true });
             else if (u?.id && !hasNick) navigate("/setup", { replace: true });
+          } else if (path === "/sobre") {
+            // /sobre é público, não redireciona
+            // Usuários logados podem acessar, usuários não logados também
           } else if (path === "/setup") {
             // Se não tem user, volta pro login
             if (!u?.id) navigate("/", { replace: true });
@@ -232,6 +239,8 @@ export default function App() {
             <Route path="/devocional" element={<Devocional />} />
             <Route path="/revisao" element={<Revisao />} />
             <Route path="/habitos" element={<Habitos />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:userId" element={<Profile />} />
           </Routes>
           <CookieConsent />
           

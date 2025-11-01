@@ -276,7 +276,10 @@ const handleLogout = async () => {
               <>
                 {/* Avatar com info no hover */}
                 <div className="group relative">
-                  <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/50 transition-all cursor-pointer">
+                  <div 
+                    onClick={() => navigate("/profile")}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/50 transition-all cursor-pointer"
+                  >
                     <ModernSealAvatar
                       size={36}
                       user={user}
