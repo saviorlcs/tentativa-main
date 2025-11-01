@@ -439,18 +439,10 @@ const advanceToNextSubject = useCallback(() => {
 }, [subjects, currentSubject, backgroundTimer]);
 
 
-useEffect(() => {
-  if (!currentSubject) return;
-  const planned = getPlannedMinutes(currentSubject);
-  if (!planned) return;
-
-  const studied = Math.max(0, (localProgress?.[currentSubject.id] || 0));
-  const pct = (studied / planned) * 100;
-
-  if (pct >= 100) {
-    advanceToNextSubject();
-  }
-}, [currentSubject, localProgress, getPlannedMinutes, advanceToNextSubject]);
+// REMOVIDO: Este useEffect não é mais necessário pois a lógica de avanço
+// automático está sendo tratada diretamente no handleBlockComplete
+// quando um bloco de estudo é concluído. Isso evita avanços duplicados
+// e permite que o usuário clique em matérias completas sem ser redirecionado.
 
   // Carregar dados do backend
   useEffect(() => {
@@ -632,12 +624,12 @@ const handleBlockComplete = useCallback(async () => {
   setBlockHistory(prev => [...prev, newBlock]);
 
   // 4) Verificar se matéria completou e deve mudar automaticamente
-  if (currentSubject) {
+  if (currentSubject && currentPhase === 'study') {
     const currentProgress = localProgress[currentSubject.id] || 0;
     const updatedProgress = currentProgress + concludedMinutesProgress;
     const subjectGoal = currentSubject.time_goal || 0;
     
-    // Se completou a matéria
+    // Se completou a matéria AO TERMINAR UM BLOCO DE ESTUDO
     if (updatedProgress >= subjectGoal) {
       const currentIndex = subjects.findIndex(s => s.id === currentSubject.id);
       
@@ -645,9 +637,12 @@ const handleBlockComplete = useCallback(async () => {
       if (currentIndex < subjects.length - 1) {
         const nextSubject = subjects[currentIndex + 1];
         setCurrentSubject(nextSubject);
-        setIsManualSubjectSelection(false);
+        setIsManualSubjectSelection(false); // Marca como mudança automática
         toast.success(`✅ ${currentSubject.name} completa! Mudando para: ${nextSubject.name}`);
       } else {
+        // Se era a última matéria, mantém nela mas marca como manual
+        // para que o usuário possa voltar blocos se quiser
+        setIsManualSubjectSelection(true);
         toast.success('🎉 Parabéns! Você completou todo o ciclo de estudos!', { duration: 5000 });
       }
     }
@@ -693,6 +688,12 @@ const toggleTimer = async () => {
     return;
   }
 
+  // CORREÇÃO: Impedir iniciar timer se a matéria estiver completa
+  if (currentPhase === 'study' && isCurrentSubjectComplete()) {
+    toast.info('Esta matéria já está completa! Use "Voltar" para reverter blocos ou "Reset" para recomeçar.');
+    return;
+  }
+
   try {
     if (backgroundTimer && backgroundTimer.isPaused) {
       console.log('[toggleTimer] resumindo timer (paused -> resume)');
@@ -717,6 +718,10 @@ const toggleTimer = async () => {
 
       // se for um novo bloco de estudo e timeLeft corresponde ao padrão, criar sessão
       if (currentPhase === 'study' && secsToStart === (settings?.study_duration || 25) * 60) {
+        // CORREÇÃO: Ao iniciar um novo bloco de estudo, resetar a flag de seleção manual
+        // para que quando completar, possa avançar automaticamente
+        setIsManualSubjectSelection(false);
+        
         try {
           const response = await api.post('/study/start', { subject_id: currentSubject.id });
           setSessionId(response.data?.id || null);
@@ -797,14 +802,11 @@ const previousBlock = useCallback(() => {
   const last = blockHistory[blockHistory.length - 1];
   console.log('[previousBlock] voltando bloco:', last);
 
-  // CORREÇÃO: Impedir voltar APENAS quando o histórico tem 1 único elemento E é um bloco de ESTUDO
-  // Isso permite:
-  // - Voltar de pausa para bloco de estudo (mesmo sendo o primeiro bloco)
-  // - Voltar do bloco 1 para bloco 0
-  // Mas impede:
-  // - Voltar do bloco 0 (primeiro absoluto) para -1
-  if (blockHistory.length === 0 && last?.type === 'study') {
-    toast.error('Não é possível voltar antes do primeiro bloco');
+  // CORREÇÃO: Verificar se o último bloco pertence à matéria atual
+  // Isso impede que o botão "Voltar" afete matérias anteriores quando
+  // o usuário está começando uma nova matéria (Bloco 0)
+  if (currentSubject && last?.subjectId && last.subjectId !== currentSubject.id) {
+    toast.error('Não é possível voltar para blocos de matérias anteriores');
     return;
   }
 
@@ -841,11 +843,15 @@ const previousBlock = useCallback(() => {
   backgroundTimer.reset(minutesToUndoTimer * 60);
   setSessionId(null);
 
+  // CORREÇÃO: Quando voltar um bloco, marcar como seleção manual
+  // para que a matéria não avance automaticamente mesmo se chegar a 100% novamente
+  setIsManualSubjectSelection(true);
+  
   toast.success('Voltou 1 bloco');
 
   // 4) força repaint das barras/lista
   setProgressUpdateTrigger(prev => prev + 1);
-}, [blockHistory, subjects, settings, backgroundTimer, updateProgress, currentSubject, isManualSubjectSelection]);
+}, [blockHistory, subjects, settings, backgroundTimer, updateProgress, currentSubject]);
 
 
 
@@ -1331,12 +1337,17 @@ const resetCycle = () => {
                        color: phaseColor,
                        textShadow: `0 0 40px ${phaseColor}60`
                      }}>
-                  {formatTime(backgroundTimer.timeLeft)}
+                  {/* CORREÇÃO: Se matéria está completa (100%), mostrar 00:00 */}
+                  {isCurrentSubjectComplete() && currentPhase === 'study' 
+                    ? '00:00' 
+                    : formatTime(backgroundTimer.timeLeft)}
                 </div>
                 <p className="text-gray-400 text-lg font-medium">
-                  {currentPhase === 'study' ? `${settings.study_duration} min` :
-                   currentPhase === 'long_break' ? `${settings.long_break_duration} min` :
-                   `${settings.break_duration} min`}
+                  {isCurrentSubjectComplete() && currentPhase === 'study' 
+                    ? '✅ Matéria completa!' 
+                    : (currentPhase === 'study' ? `${settings.study_duration} min` :
+                       currentPhase === 'long_break' ? `${settings.long_break_duration} min` :
+                       `${settings.break_duration} min`)}
                 </p>
               </div>
 
@@ -1344,10 +1355,16 @@ const resetCycle = () => {
               <div className="grid grid-cols-4 gap-3 mb-8">
                 <Button
                   onClick={toggleTimer}
-                  className="h-16 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-bold text-lg rounded-2xl shadow-2xl shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105"
+                  disabled={isCurrentSubjectComplete() && currentPhase === 'study'}
+                  className="h-16 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 disabled:from-slate-600 disabled:to-slate-700 disabled:opacity-50 text-white font-bold text-lg rounded-2xl shadow-2xl shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105 disabled:scale-100"
                   data-testid="start-pause-btn"
                 >
-                  {backgroundTimer.isRunning ? (
+                  {isCurrentSubjectComplete() && currentPhase === 'study' ? (
+                    <>
+                      <Trophy className="w-5 h-5 mr-2" />
+                      Completo
+                    </>
+                  ) : backgroundTimer.isRunning ? (
                     <>
                       <Pause className="w-5 h-5 mr-2" />
                       Pausar
@@ -1367,7 +1384,7 @@ const resetCycle = () => {
 
                 <Button
                   onClick={skipBlock}
-                  disabled={currentPhase === 'study' && !currentSubject}
+                  disabled={(currentPhase === 'study' && !currentSubject) || (isCurrentSubjectComplete() && currentPhase === 'study')}
                   className="h-16 bg-slate-700/80 hover:bg-slate-600/80 disabled:opacity-40 text-white font-semibold rounded-2xl transition-all duration-300 hover:scale-105"
                   data-testid="skip-btn"
                 >
@@ -1479,12 +1496,21 @@ const resetCycle = () => {
                     <div className="space-y-2">
                       {subjects.map(subject => {
                         const progress = getSubjectProgress(subject.id);
+                        const isComplete = progress >= 100;
                         return (
                           <SortableSubjectItem
                             key={`${subject.id}-${progressUpdateTrigger}`}
                             subject={subject}
                             isActive={currentSubject?.id === subject.id}
-                            onClick={() => { setCurrentSubject(subject); setIsManualSubjectSelection(true); setProgressUpdateTrigger(p => p + 1); }}
+                            onClick={() => { 
+                              setCurrentSubject(subject); 
+                              setIsManualSubjectSelection(true); 
+                              setProgressUpdateTrigger(p => p + 1);
+                              // Mostrar mensagem informativa se a matéria estiver completa
+                              if (isComplete) {
+                                toast.info(`${subject.name} está completa! Você pode voltar blocos ou resetar.`);
+                              }
+                            }}
                             onEdit={setShowEditSubject}
                             onDelete={handleDeleteSubject}
                             progress={progress}
