@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
+import Header from "@/components/Header";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import PeriodFilter from "@/components/profile/PeriodFilter";
 import StatsCard from "@/components/profile/StatsCard";
