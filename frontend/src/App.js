@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { api } from "./lib/api";  
 import LandingNew from "./pages/LandingNew";
+import Sobre from "./pages/Sobre";
 import CookieConsent from "./components/CookieConsent";
 import Dashboard from "./pages/DashboardFixed";
 import Shop from "./pages/Shop";
@@ -215,6 +216,7 @@ export default function App() {
           <HelloProbe /> {/* integra o "helloWorldApi" do primeiro código */}
           <Routes>
             <Route path="/" element={<LandingNew />} />
+            <Route path="/sobre" element={<Sobre />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/setup" element={<NicknameSetup />} />
             <Route path="/dashboard" element={<Dashboard />} />

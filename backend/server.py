@@ -33,6 +33,7 @@ from shop_seed import build_items
 import os
 from fastapi import Depends
 import logging
+from content_filter import is_valid_nickname, get_content_filter_message
 logger = logging.getLogger("pomociclo")
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO)
@@ -2315,6 +2316,11 @@ async def create_or_update_nickname(input: NicknameTagCreate, request: Request, 
     if not re.match(r'^[a-zA-Z0-9]{3,4}$', input.tag):
         raise HTTPException(status_code=400, detail="Tag deve ter 3-4 caracteres alfanuméricos")
     
+    # Validate content (check for offensive words)
+    is_valid, error_message = is_valid_nickname(input.nickname, input.tag)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_message)
+    
     # Check if nickname#tag already exists (case insensitive)
     existing = await db.users.find_one({
         "nickname": {"$regex": f"^{input.nickname}$", "$options": "i"},
@@ -2356,6 +2362,11 @@ async def check_nickname_available(nickname: str, tag: str):
     
     if not re.match(r'^[a-zA-Z0-9]{3,4}$', tag):
         return {"available": False, "reason": "Formato inválido de tag"}
+    
+    # Validate content (check for offensive words)
+    is_valid, error_message = is_valid_nickname(nickname, tag)
+    if not is_valid:
+        return {"available": False, "reason": error_message}
     
     # Check if exists (case insensitive)
     existing = await db.users.find_one({
