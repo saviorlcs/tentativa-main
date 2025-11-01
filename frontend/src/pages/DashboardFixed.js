@@ -253,6 +253,7 @@ function DashboardFixed() {
   const [localProgress, setLocalProgress] = useState({});
   const [progressUpdateTrigger, setProgressUpdateTrigger] = useState(0); // NOVO: trigger para forçar re-render
   const [stats, setStats] = useState(null);
+  const [isLoadedFromStorage, setIsLoadedFromStorage] = useState(false); // Flag para controlar carregamento
 
   // Estados de quests
   const [quests, setQuests] = useState([]);
@@ -266,6 +267,86 @@ function DashboardFixed() {
 
 
   const hasRequestedPermission = useRef(false);
+
+  // ============= PERSISTÊNCIA NO LOCALSTORAGE =============
+  const STORAGE_KEYS = {
+    LOCAL_PROGRESS: 'pomociclo_local_progress',
+    BLOCK_HISTORY: 'pomociclo_block_history',
+    CURRENT_SUBJECT_ID: 'pomociclo_current_subject_id'
+  };
+
+  // Carregar dados do localStorage ao iniciar
+  useEffect(() => {
+    try {
+      const savedProgress = localStorage.getItem(STORAGE_KEYS.LOCAL_PROGRESS);
+      const savedHistory = localStorage.getItem(STORAGE_KEYS.BLOCK_HISTORY);
+      const savedSubjectId = localStorage.getItem(STORAGE_KEYS.CURRENT_SUBJECT_ID);
+
+      if (savedProgress) {
+        const parsedProgress = JSON.parse(savedProgress);
+        console.log('[localStorage] Carregando progresso salvo:', parsedProgress);
+        setLocalProgress(parsedProgress);
+      }
+
+      if (savedHistory) {
+        const parsedHistory = JSON.parse(savedHistory);
+        console.log('[localStorage] Carregando histórico salvo:', parsedHistory);
+        setBlockHistory(parsedHistory);
+      }
+
+      if (savedSubjectId && subjects.length > 0) {
+        const savedSubject = subjects.find(s => s.id === savedSubjectId);
+        if (savedSubject) {
+          console.log('[localStorage] Restaurando matéria atual:', savedSubject.name);
+          setCurrentSubject(savedSubject);
+        }
+      }
+
+      setIsLoadedFromStorage(true);
+    } catch (error) {
+      console.error('[localStorage] Erro ao carregar dados:', error);
+      setIsLoadedFromStorage(true);
+    }
+  }, [subjects]);
+
+  // Salvar localProgress no localStorage sempre que mudar
+  useEffect(() => {
+    if (!isLoadedFromStorage) return; // Só salva depois de carregar pela primeira vez
+    
+    try {
+      console.log('[localStorage] Salvando progresso:', localProgress);
+      localStorage.setItem(STORAGE_KEYS.LOCAL_PROGRESS, JSON.stringify(localProgress));
+    } catch (error) {
+      console.error('[localStorage] Erro ao salvar progresso:', error);
+    }
+  }, [localProgress, isLoadedFromStorage]);
+
+  // Salvar blockHistory no localStorage sempre que mudar
+  useEffect(() => {
+    if (!isLoadedFromStorage) return;
+    
+    try {
+      console.log('[localStorage] Salvando histórico:', blockHistory);
+      localStorage.setItem(STORAGE_KEYS.BLOCK_HISTORY, JSON.stringify(blockHistory));
+    } catch (error) {
+      console.error('[localStorage] Erro ao salvar histórico:', error);
+    }
+  }, [blockHistory, isLoadedFromStorage]);
+
+  // Salvar currentSubject no localStorage sempre que mudar
+  useEffect(() => {
+    if (!isLoadedFromStorage) return;
+    
+    if (currentSubject) {
+      try {
+        console.log('[localStorage] Salvando matéria atual:', currentSubject.id);
+        localStorage.setItem(STORAGE_KEYS.CURRENT_SUBJECT_ID, currentSubject.id);
+      } catch (error) {
+        console.error('[localStorage] Erro ao salvar matéria atual:', error);
+      }
+    }
+  }, [currentSubject, isLoadedFromStorage]);
+  // ============= FIM DA PERSISTÊNCIA =============
 
   // Determinar fase atual baseado no histórico
   const currentPhase = useMemo(() => {
@@ -394,17 +475,40 @@ useEffect(() => {
           backgroundTimer.reset((settingsRes.data.study_duration || 50) * 60);
         }
 
-        // Inicializar progresso local
-        const initialProgress = {};
+        // MODIFICADO: Merge inteligente entre dados do backend e localStorage
+        const savedProgress = localStorage.getItem(STORAGE_KEYS.LOCAL_PROGRESS);
+        let mergedProgress = {};
+        
+        if (savedProgress) {
+          // Se há dados salvos no localStorage, usar eles como base
+          mergedProgress = JSON.parse(savedProgress);
+          console.log('[fetchData] Usando progresso do localStorage como base');
+        }
+        
+        // Garantir que todas as matérias tenham uma entrada, mesmo que seja 0
         sortedSubjects.forEach(subject => {
-          const subjectStats = (statsRes.data?.subjects || []).find(s => s.id === subject.id);
-          initialProgress[subject.id] = subjectStats?.studied_minutes || 0;
+          if (!(subject.id in mergedProgress)) {
+            // Se não há progresso salvo para essa matéria, usar dados do backend
+            const subjectStats = (statsRes.data?.subjects || []).find(s => s.id === subject.id);
+            mergedProgress[subject.id] = subjectStats?.studied_minutes || 0;
+          }
         });
-        setLocalProgress(initialProgress);
+        
+        setLocalProgress(mergedProgress);
+        console.log('[fetchData] Progresso mesclado:', mergedProgress);
 
-        // Selecionar primeira matéria se nenhuma estiver selecionada
-        if (!currentSubject && sortedSubjects.length > 0) {
-          setCurrentSubject(sortedSubjects[0]);
+        // Selecionar matéria: preferir a salva no localStorage, senão primeira da lista
+        const savedSubjectId = localStorage.getItem(STORAGE_KEYS.CURRENT_SUBJECT_ID);
+        const savedSubject = sortedSubjects.find(s => s.id === savedSubjectId);
+        
+        if (!currentSubject) {
+          if (savedSubject) {
+            setCurrentSubject(savedSubject);
+            console.log('[fetchData] Restaurando matéria salva:', savedSubject.name);
+          } else if (sortedSubjects.length > 0) {
+            setCurrentSubject(sortedSubjects[0]);
+            console.log('[fetchData] Selecionando primeira matéria:', sortedSubjects[0].name);
+          }
         }
 
         setLoading(false);
@@ -787,8 +891,7 @@ const skipBlock = useCallback(() => {
 
    
 
-  // Reset bloco atual
-  const resetCurrentSubject = () => {
+const resetCurrentSubject = () => {
   if (!currentSubject) { toast.error("Nenhuma matéria selecionada"); return; }
   const sid = currentSubject.id;
 
@@ -797,7 +900,21 @@ const skipBlock = useCallback(() => {
   setBlockHistory(prev => prev.filter(b => b.subjectId !== sid));
   backgroundTimer.pause();
   setSessionId(null);
-  toast.success("Matéria atual resetada 100%");
+  
+  // NOVO: Resetar timer para bloco de ESTUDOS
+  const studyDuration = settings?.study_duration || 50;
+  backgroundTimer.reset(studyDuration * 60);
+  console.log('[resetCurrentSubject] Timer resetado para bloco de estudos:', studyDuration, 'min');
+  
+  // NOVO: Limpar do localStorage também
+  try {
+    localStorage.removeItem(STORAGE_KEYS.LOCAL_PROGRESS);
+    localStorage.removeItem(STORAGE_KEYS.BLOCK_HISTORY);
+  } catch (error) {
+    console.error('[localStorage] Erro ao limpar matéria:', error);
+  }
+  
+  toast.success("Matéria atual resetada 100% - Timer ajustado para estudo");
   
   // NOVO: Força re-render
   setProgressUpdateTrigger(prev => prev + 1);
@@ -808,8 +925,22 @@ const resetCycle = () => {
   setSessionId(null);
   setBlockHistory([]);
   setLocalProgress({});
-  backgroundTimer.reset((settings?.study_duration || 50) * 60);
-  toast.success("Ciclo resetado");
+  
+  // MODIFICADO: Sempre resetar para bloco de ESTUDOS
+  const studyDuration = settings?.study_duration || 50;
+  backgroundTimer.reset(studyDuration * 60);
+  console.log('[resetCycle] Timer resetado para bloco de estudos:', studyDuration, 'min');
+  
+  // NOVO: Limpar tudo do localStorage
+  try {
+    localStorage.removeItem(STORAGE_KEYS.LOCAL_PROGRESS);
+    localStorage.removeItem(STORAGE_KEYS.BLOCK_HISTORY);
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_SUBJECT_ID);
+  } catch (error) {
+    console.error('[localStorage] Erro ao limpar ciclo:', error);
+  }
+  
+  toast.success("Ciclo resetado - Timer ajustado para estudo");
   
   // NOVO: Força re-render
   setProgressUpdateTrigger(prev => prev + 1);
