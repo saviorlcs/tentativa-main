@@ -339,13 +339,28 @@ const advanceToNextSubject = useCallback(() => {
 
   // troca a matéria
   setCurrentSubject(next);
-setProgressUpdateTrigger(prev => prev + 1);
+  setProgressUpdateTrigger(prev => prev + 1);
 
-  // prepara novo bloco de ESTUDO
+  // CORREÇÃO: Verificar se o próximo bloco deve ser uma pausa longa
+  // Conta quantos blocos de estudo foram completados
+  const studyBlocksCompleted = blockHistory.filter(b => b.type === 'study').length;
+  
+  // Se completou múltiplo de long_break_interval (padrão: 4), próximo é pausa longa
+  const shouldBeLongBreak = studyBlocksCompleted > 0 && 
+                            studyBlocksCompleted % (settings?.long_break_interval || 4) === 0;
+  
   backgroundTimer.pause();
-  backgroundTimer.reset((settings?.study_duration || 50) * 60);
-  toast.info(`Próxima matéria: ${next.name}`);
-}, [subjects, currentSubject, settings, backgroundTimer]);
+  
+  if (shouldBeLongBreak) {
+    // Configurar para pausa longa
+    backgroundTimer.reset((settings?.long_break_duration || 30) * 60);
+    toast.info(`Pausa Longa antes de: ${next.name} 🌟`);
+  } else {
+    // Configurar para novo bloco de estudo
+    backgroundTimer.reset((settings?.study_duration || 50) * 60);
+    toast.info(`Próxima matéria: ${next.name}`);
+  }
+}, [subjects, currentSubject, settings, backgroundTimer, blockHistory]);
 
 
 useEffect(() => {
@@ -638,6 +653,43 @@ const previousBlock = useCallback(() => {
   const last = blockHistory[blockHistory.length - 1];
   console.log('[previousBlock] voltando bloco:', last);
 
+  // NOVA VALIDAÇÃO: Impedir voltar o primeiro bloco de uma nova matéria
+  // Verifica se o último bloco é o primeiro de uma nova matéria
+  if (last?.type === 'study' && last?.subjectId) {
+    // Busca blocos anteriores no histórico (excluindo o último)
+    const previousBlocks = blockHistory.slice(0, -1);
+    
+    // Procura se existe algum bloco de estudo anterior com a mesma matéria
+    const hasPreviousBlockOfSameSubject = previousBlocks.some(
+      b => b.type === 'study' && b.subjectId === last.subjectId
+    );
+    
+    // Se NÃO existe bloco anterior da mesma matéria, é o primeiro bloco dessa matéria
+    if (!hasPreviousBlockOfSameSubject) {
+      toast.error('Não é possível voltar o primeiro bloco de uma matéria');
+      return;
+    }
+  }
+  
+  // VALIDAÇÃO ADICIONAL: Se o último bloco é uma pausa longa que vem logo após trocar de matéria
+  if (last?.type === 'long_break') {
+    // Pega todos os blocos de estudo no histórico
+    const studyBlocks = blockHistory.filter(b => b.type === 'study');
+    
+    if (studyBlocks.length > 0) {
+      // Pega o último bloco de estudo antes desta pausa longa
+      const lastStudyBlock = studyBlocks[studyBlocks.length - 1];
+      
+      // Verifica se após este último estudo vem uma nova matéria
+      // (se o próximo estudo seria de outra matéria)
+      if (currentSubject && lastStudyBlock.subjectId !== currentSubject.id) {
+        // Esta pausa longa é o primeiro bloco antes de uma nova matéria
+        toast.error('Não é possível voltar o primeiro bloco de uma matéria');
+        return;
+      }
+    }
+  }
+
   // duração confiável em minutos
   const defaultStudyMin = settings?.study_duration || 50;
   const defaultBreakMin = settings?.break_duration || 10;
@@ -667,7 +719,7 @@ const previousBlock = useCallback(() => {
 
   // 4) força repaint das barras/lista
   setProgressUpdateTrigger(prev => prev + 1);
-}, [blockHistory, subjects, settings, backgroundTimer, updateProgress]);
+}, [blockHistory, subjects, settings, backgroundTimer, updateProgress, currentSubject]);
 
 
 
@@ -906,6 +958,26 @@ const resetCycle = () => {
 
   const studyBlocksCount = blockHistory.filter(b => b.type === 'study').length;
   const nextLongBreakIn = 4 - (studyBlocksCount % 4);
+
+  // Calcular tempo total do ciclo incluindo pausas longas
+  const totalCycleTimeWithBreaks = useMemo(() => {
+    // Tempo total de estudo planejado
+    const totalStudyTime = subjects.reduce((sum, s) => sum + (s.time_goal || 0), 0);
+    
+    // Calcular número total de blocos de estudo
+    const totalStudyBlocks = subjects.reduce((sum, s) => {
+      return sum + Math.ceil((s.time_goal || 0) / (settings?.study_duration || 50));
+    }, 0);
+    
+    // Calcular quantas pausas longas haverá
+    const longBreakInterval = settings?.long_break_interval || 4;
+    const numberOfLongBreaks = Math.floor(totalStudyBlocks / longBreakInterval);
+    
+    // Tempo total de pausas longas
+    const totalLongBreaksTime = numberOfLongBreaks * (settings?.long_break_duration || 30);
+    
+    return totalStudyTime + totalLongBreaksTime;
+  }, [subjects, settings]);
 
   // --- Sistema de Quests ---
   const minutesStudiedSoFar = useMemo(() => {
@@ -1439,7 +1511,15 @@ const resetCycle = () => {
                     <div className="pt-4 mt-4 text-right text-xs border-t border-slate-700/50 space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-400">Tempo total do ciclo:</span>
-                        <b className="text-cyan-300 text-sm">{formatMinutes(subjects.reduce((sum, s) => sum + (s.time_goal || 0), 0))}</b>
+                        <b className="text-cyan-300 text-sm">{formatMinutes(totalCycleTimeWithBreaks)}</b>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="text-gray-500 ml-2">• Estudo:</span>
+                        <span className="text-gray-400">{formatMinutes(subjects.reduce((sum, s) => sum + (s.time_goal || 0), 0))}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="text-gray-500 ml-2">• Pausas longas:</span>
+                        <span className="text-gray-400">{formatMinutes(totalCycleTimeWithBreaks - subjects.reduce((sum, s) => sum + (s.time_goal || 0), 0))}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-400">Tempo de estudo:</span>
