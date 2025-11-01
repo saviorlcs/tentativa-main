@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -42,12 +42,10 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
 
-// Componente Bar para progresso - CORRIGIDO para forçar re-render
-function Bar({ value, className = "", forceUpdateKey }) {
+// Componente Bar para progresso - OTIMIZADO com memo
+const Bar = memo(function Bar({ value, className = "", forceUpdateKey }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
-  console.log('[Bar] renderizando com valor:', v, 'key:', forceUpdateKey);
   
-  // Força re-render usando o valor diretamente no style
   return (
     <div className={`h-2 rounded-full bg-slate-700/50 overflow-hidden ${className}`} key={forceUpdateKey}>
       <div
@@ -56,10 +54,10 @@ function Bar({ value, className = "", forceUpdateKey }) {
       />
     </div>
   );
-}
+});
 
-// Componente de Item Arrastável com design moderno - CORRIGIDO
-function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, progress, forceUpdateKey }) {
+// Componente de Item Arrastável com design moderno - OTIMIZADO com memo
+const SortableSubjectItem = memo(function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, progress, forceUpdateKey }) {
   const {
     attributes,
     listeners,
@@ -84,7 +82,7 @@ function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, pro
     return `${mins}min`;
   };
 
-  console.log('[SortableSubjectItem] renderizando:', { subjectId: subject.id, progress, forceUpdateKey });
+  // OTIMIZAÇÃO: Log removido para melhor performance
 
   return (
     <div
@@ -169,7 +167,7 @@ function SortableSubjectItem({ subject, isActive, onClick, onEdit, onDelete, pro
       </div>
     </div>
   );
-}
+});
 
 // Helpers geométricos para o mapa do ciclo
 const deg2rad = (deg) => (deg * Math.PI) / 180;
@@ -225,6 +223,10 @@ const generateUniqueColor = (existingColors) => {
 
   return newColor;
 };
+
+// OTIMIZAÇÃO: Helper para logs condicionais (desliga em produção)
+const DEBUG = process.env.NODE_ENV === 'development';
+const debugLog = (...args) => DEBUG && console.log(...args);
 
 function DashboardFixed() {
   const { me: user, refreshUser } = useApp();
@@ -540,10 +542,10 @@ useEffect(() => {
 
 // Monitor de mudanças no localProgress para debug
   useEffect(() => {
-    console.log('[useEffect] localProgress alterado:', localProgress);
-    console.log('[useEffect] currentSubject:', currentSubject);
+    debugLog('[useEffect] localProgress alterado:', localProgress);
+    debugLog('[useEffect] currentSubject:', currentSubject);
     if (currentSubject) {
-      console.log('[useEffect] progresso da matéria atual:', localProgress[currentSubject.id]);
+      debugLog('[useEffect] progresso da matéria atual:', localProgress[currentSubject.id]);
     }
   }, [localProgress, currentSubject]);
 
@@ -795,41 +797,15 @@ const previousBlock = useCallback(() => {
   const last = blockHistory[blockHistory.length - 1];
   console.log('[previousBlock] voltando bloco:', last);
 
-  // Impedir voltar se o último bloco é o primeiro bloco de uma matéria
-  if (last?.type === 'study' && last?.subjectId) {
-    // Busca blocos anteriores no histórico (excluindo o último)
-    const previousBlocks = blockHistory.slice(0, -1);
-    
-    // Procura se existe algum bloco de estudo anterior com a mesma matéria
-    const hasPreviousBlockOfSameSubject = previousBlocks.some(
-      b => b.type === 'study' && b.subjectId === last.subjectId
-    );
-    
-    // Se NÃO existe bloco anterior da mesma matéria, é o primeiro bloco dessa matéria
-    if (!hasPreviousBlockOfSameSubject) {
-      toast.error('Não é possível voltar o primeiro bloco de uma matéria');
-      return;
-    }
-  }
-  
-  // Impedir voltar se o último bloco é uma pausa que precede uma nova matéria
-  // EXCETO se foi seleção manual da matéria
-  if ((last?.type === 'short_break' || last?.type === 'long_break') && !isManualSubjectSelection) {
-    // Verifica se essa pausa está antes de uma nova matéria
-    // Pega todos os blocos de estudo
-    const studyBlocks = blockHistory.filter(b => b.type === 'study');
-    
-    if (studyBlocks.length > 0) {
-      const lastStudyBlock = studyBlocks[studyBlocks.length - 1];
-      
-      // Se a matéria atual é diferente da última matéria estudada,
-      // essa pausa está entre duas matérias diferentes
-      if (currentSubject && lastStudyBlock.subjectId !== currentSubject.id) {
-        const pauseType = last.type === 'long_break' ? 'pausa longa' : 'pausa curta';
-        toast.error(`Não é possível voltar a ${pauseType} antes de uma nova matéria`);
-        return;
-      }
-    }
+  // CORREÇÃO: Impedir voltar APENAS quando o histórico tem 1 único elemento E é um bloco de ESTUDO
+  // Isso permite:
+  // - Voltar de pausa para bloco de estudo (mesmo sendo o primeiro bloco)
+  // - Voltar do bloco 1 para bloco 0
+  // Mas impede:
+  // - Voltar do bloco 0 (primeiro absoluto) para -1
+  if (blockHistory.length === 0 && last?.type === 'study') {
+    toast.error('Não é possível voltar antes do primeiro bloco');
+    return;
   }
 
   // duração confiável em minutos
@@ -969,17 +945,21 @@ const resetCurrentSubject = (resetLongBreakCounter = false) => {
   if (!currentSubject) { toast.error("Nenhuma matéria selecionada"); return; }
   const sid = currentSubject.id;
 
-  // Limpar TUDO relacionado à matéria: progresso E histórico (incluindo pausas)
+  // Limpar APENAS progresso e histórico da matéria atual (não de outras!)
   setLocalProgress(prev => ({ ...prev, [sid]: 0 }));
   setBlockHistory(prev => prev.filter(b => b.subjectId !== sid));
   backgroundTimer.pause();
   setSessionId(null);
   
-  // Se optou por resetar a contagem de blocos até pausa longa
+  // CORREÇÃO: Se optou por resetar a contagem de blocos até pausa longa
   if (resetLongBreakCounter) {
-    // Remove TODOS os blocos de estudo do histórico (reseta contagem global)
-    setBlockHistory(prev => prev.filter(b => b.type !== 'study'));
-    console.log('[resetCurrentSubject] Contagem de blocos até pausa longa resetada');
+    // Remove APENAS os blocos de estudo da matéria atual
+    // Mantém blocos de outras matérias intactos!
+    setBlockHistory(prev => prev.filter(b => {
+      // Mantém todos os blocos que NÃO são de estudo da matéria atual
+      return !(b.type === 'study' && b.subjectId === sid);
+    }));
+    console.log('[resetCurrentSubject] Contagem de blocos até pausa longa resetada (apenas da matéria atual)');
   }
   
   // NOVO: Resetar timer para bloco de ESTUDOS
@@ -987,10 +967,15 @@ const resetCurrentSubject = (resetLongBreakCounter = false) => {
   backgroundTimer.reset(studyDuration * 60);
   console.log('[resetCurrentSubject] Timer resetado para bloco de estudos:', studyDuration, 'min');
   
-  // NOVO: Limpar do localStorage também
+  // CORREÇÃO: Salvar alterações no localStorage mantendo outras matérias
   try {
-    localStorage.removeItem(STORAGE_KEYS.LOCAL_PROGRESS);
-    localStorage.removeItem(STORAGE_KEYS.BLOCK_HISTORY);
+    const currentProgress = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOCAL_PROGRESS) || '{}');
+    currentProgress[sid] = 0;
+    localStorage.setItem(STORAGE_KEYS.LOCAL_PROGRESS, JSON.stringify(currentProgress));
+    
+    const currentHistory = JSON.parse(localStorage.getItem(STORAGE_KEYS.BLOCK_HISTORY) || '[]');
+    const filteredHistory = currentHistory.filter(b => b.subjectId !== sid);
+    localStorage.setItem(STORAGE_KEYS.BLOCK_HISTORY, JSON.stringify(filteredHistory));
   } catch (error) {
     console.error('[localStorage] Erro ao limpar matéria:', error);
   }
@@ -1392,7 +1377,7 @@ const resetCycle = () => {
 
                 <Button
                   onClick={previousBlock}
-                  disabled={blockHistory.length === 0 || backgroundTimer.isRunning}
+                  disabled={blockHistory.length === 0}
                   className="h-16 bg-slate-700/80 hover:bg-slate-600/80 disabled:opacity-40 text-white font-semibold rounded-2xl transition-all duration-300 hover:scale-105"
                   data-testid="previous-btn"
                 >

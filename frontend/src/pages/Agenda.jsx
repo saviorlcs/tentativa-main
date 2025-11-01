@@ -351,53 +351,58 @@ export default function Agenda() {
     
     setCreating(true);
     try {
-      // Verifica conflitos primeiro (especialmente se for revisão)
-      if (eventType === "review" || recurrenceType === "once") {
-        const conflictCheck = await api.post("/calendar/check-conflicts", payload);
-        
-        if (conflictCheck.data.has_conflict) {
-          const conflicts = conflictCheck.data.conflicting_events || [];
-          const suggested = conflictCheck.data.suggested_time;
+      // CORREÇÃO: Verificação de conflitos opcional - se falhar, apenas cria o evento
+      try {
+        if (eventType === "review" || recurrenceType === "once") {
+          const conflictCheck = await api.post("/calendar/check-conflicts", payload).catch(() => null);
           
-          let message = `⚠️ Conflito detectado!\n\n`;
-          if (eventType === "review") {
-            message += `Este horário coincide com ${conflicts.length} aula(s):\n`;
-          } else {
-            message += `Este horário já possui ${conflicts.length} evento(s):\n`;
-          }
-          conflicts.forEach(c => {
-            const cStart = new Date(c.start);
-            message += `• ${c.title} (${pad2(cStart.getHours())}:${pad2(cStart.getMinutes())})\n`;
-          });
-          
-          if (suggested) {
-            const suggestedDate = new Date(suggested);
-            const suggestedTime = `${pad2(suggestedDate.getHours())}:${pad2(suggestedDate.getMinutes())}`;
-            message += `\n✨ Horário livre sugerido: ${suggestedTime}`;
+          if (conflictCheck?.data?.has_conflict) {
+            const conflicts = conflictCheck.data.conflicting_events || [];
+            const suggested = conflictCheck.data.suggested_time;
             
-            const shouldUseSuggested = window.confirm(
-              message + "\n\nDeseja usar o horário sugerido?"
-            );
-            
-            if (shouldUseSuggested) {
-              setStartHHMM(suggestedTime);
-              const duration = (end - start) / (1000 * 60); // minutos
-              const newEnd = new Date(suggestedDate.getTime() + duration * 60 * 1000);
-              setEndHHMM(`${pad2(newEnd.getHours())}:${pad2(newEnd.getMinutes())}`);
-              setCreating(false);
-              toast.info("Horário ajustado! Clique em Criar novamente.");
-              return;
+            let message = `⚠️ Conflito detectado!\n\n`;
+            if (eventType === "review") {
+              message += `Este horário coincide com ${conflicts.length} aula(s):\n`;
+            } else {
+              message += `Este horário já possui ${conflicts.length} evento(s):\n`;
             }
-          } else {
-            const shouldContinue = window.confirm(
-              message + "\n\nDeseja criar o evento mesmo assim?"
-            );
-            if (!shouldContinue) {
-              setCreating(false);
-              return;
+            conflicts.forEach(c => {
+              const cStart = new Date(c.start);
+              message += `• ${c.title} (${pad2(cStart.getHours())}:${pad2(cStart.getMinutes())})\n`;
+            });
+            
+            if (suggested) {
+              const suggestedDate = new Date(suggested);
+              const suggestedTime = `${pad2(suggestedDate.getHours())}:${pad2(suggestedDate.getMinutes())}`;
+              message += `\n✨ Horário livre sugerido: ${suggestedTime}`;
+              
+              const shouldUseSuggested = window.confirm(
+                message + "\n\nDeseja usar o horário sugerido?"
+              );
+              
+              if (shouldUseSuggested) {
+                setStartHHMM(suggestedTime);
+                const duration = (end - start) / (1000 * 60); // minutos
+                const newEnd = new Date(suggestedDate.getTime() + duration * 60 * 1000);
+                setEndHHMM(`${pad2(newEnd.getHours())}:${pad2(newEnd.getMinutes())}`);
+                setCreating(false);
+                toast.info("Horário ajustado! Clique em Criar novamente.");
+                return;
+              }
+            } else {
+              const shouldContinue = window.confirm(
+                message + "\n\nDeseja criar o evento mesmo assim?"
+              );
+              if (!shouldContinue) {
+                setCreating(false);
+                return;
+              }
             }
           }
         }
+      } catch (conflictError) {
+        // Se a verificação de conflitos falhar, apenas loga e continua
+        console.log('[Agenda] Verificação de conflitos não disponível, criando evento diretamente');
       }
       
       // Cria o evento
