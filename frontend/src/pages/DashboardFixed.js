@@ -450,11 +450,11 @@ const handleBlockComplete = useCallback(async () => {
     currentPhase === 'study' ? 'Bloco de estudo completo!' : 'Pausa completa!'
   );
 
-  // monta o bloco concluído (minutos)
+  // monta o bloco concluído (minutos) - CORRIGIDO: usa settings.long_break_duration diretamente
   const concludedMinutes = currentPhase === 'study'
     ? (settings?.study_duration || 50)
     : (currentPhase === 'long_break'
-        ? (settings?.break_duration || 10) * 3
+        ? (settings?.long_break_duration || 30)
         : (settings?.break_duration || 10));
 
   const newBlock = {
@@ -494,17 +494,17 @@ const handleBlockComplete = useCallback(async () => {
   // 3) registra no histórico (sempre pelo set funcional)
   setBlockHistory(prev => [...prev, newBlock]);
 
-  // 4) prepara próxima fase/tempo
+  // 4) prepara próxima fase/tempo - CORRIGIDO
   // define a próxima fase e tempo
 const studyCountSoFar = (blockHistory.filter(b => b.type === 'study').length) + (currentPhase === 'study' ? 1 : 0);
 const nextPhase = currentPhase === 'study'
   ? (studyCountSoFar % settings.long_break_interval === 0 ? 'long_break' : 'short_break')
   : 'study';
 
-
+  // CORRIGIDO: usar os valores corretos de settings para cada fase
   const nextDuration = nextPhase === 'study'
     ? (settings?.study_duration || 50)
-    : (nextPhase === 'long_break' ? (settings?.long_break_duration || 10): (settings?.break_duration || 10));
+    : (nextPhase === 'long_break' ? (settings?.long_break_duration || 30) : (settings?.break_duration || 10));
 
   backgroundTimer.reset(nextDuration * 60);
   toast.info(nextPhase !== 'study' ? (nextPhase === 'long_break' ? 'Próximo: Pausa Longa 🌟' : 'Próximo: Pausa Curta ☕') : 'Próximo: Estudo 📚');
@@ -1006,11 +1006,12 @@ const resetCycle = () => {
       <Header />
 
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Grid Principal - Otimizado */}
+        {/* Grid Principal - Reorganizado */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           
-          {/* Coluna Central - Timer (2 colunas) */}
-          <div className="lg:col-span-2">
+          {/* Coluna Central - Timer e Fila (2 colunas) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Card do Timer */}
             <div className="rounded-3xl p-8 bg-gradient-to-br from-slate-800/60 via-slate-800/50 to-slate-900/60 border border-slate-700/50 shadow-2xl backdrop-blur-xl">
               
               {/* Avatar + Título */}
@@ -1156,7 +1157,7 @@ const resetCycle = () => {
                 </div>
               </div>
 
-              {/* Barras de Progresso - CORRIGIDO sem keys */}
+              {/* Barras de Progresso */}
               <div className="space-y-6 bg-gradient-to-br from-slate-900/40 to-slate-800/40 rounded-2xl p-6 backdrop-blur border border-slate-700/30">
                 <div>
                   <div className="flex justify-between text-sm mb-2">
@@ -1164,7 +1165,6 @@ const resetCycle = () => {
                     <span className="text-cyan-400 font-bold text-base">{currentSubjectProgress.toFixed(0)}%</span>
                   </div>
                   <Bar value={currentSubjectProgress} forceUpdateKey={progressUpdateTrigger} />
-
                 </div>
 
                 <div>
@@ -1173,14 +1173,82 @@ const resetCycle = () => {
                     <span className="text-cyan-400 font-bold text-base">{cycleProgress.toFixed(0)}%</span>
                   </div>
                   <Bar value={cycleProgress} forceUpdateKey={progressUpdateTrigger} />
-
                 </div>
               </div>
             </div>
+
+            {/* Fila de Conteúdos - Logo abaixo do timer */}
+            <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-5 shadow-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-white">Fila de conteúdos</h2>
+                <Button
+                  onClick={() => {
+                    const existingColors = subjects.map(s => s.color);
+                    const uniqueColor = generateUniqueColor(existingColors);
+                    setNewSubject({ name: '', color: uniqueColor, time_goal: 300 });
+                    setShowAddSubject(true);
+                  }}
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg px-3 py-1.5 text-sm"
+                  size="sm"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Adicionar
+                </Button>
+              </div>
+
+              {subjects.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-400 text-base mb-2">Nenhuma matéria adicionada ainda</p>
+                  <p className="text-gray-500 text-sm">Clique em "Adicionar" para criar sua primeira matéria</p>
+                </div>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext items={subjects.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
+                      {subjects.map(subject => {
+                        const progress = getSubjectProgress(subject.id);
+                        return (
+                          <SortableSubjectItem
+                            key={`${subject.id}-${progressUpdateTrigger}`}
+                            subject={subject}
+                            isActive={currentSubject?.id === subject.id}
+                            onClick={() => { setCurrentSubject(subject); setProgressUpdateTrigger(p => p + 1); }}
+                            onEdit={setShowEditSubject}
+                            onDelete={handleDeleteSubject}
+                            progress={progress}
+                            forceUpdateKey={progressUpdateTrigger}
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+
+                  <DragOverlay>
+                    {activeId && activeSubject ? (
+                      <div className="bg-slate-800 border-2 border-cyan-400 rounded-xl p-4 shadow-2xl opacity-90">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: activeSubject.color }}
+                          />
+                          <span className="font-semibold text-white">{activeSubject.name}</span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </DragOverlay>
+                </DndContext>
+              )}
+            </div>
           </div>
 
-          {/* Coluna Direita - Mapa do Ciclo */}
-          <div className="lg:col-span-1">
+          {/* Coluna Direita - Mapa do Ciclo e Missões */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Mapa do Ciclo */}
             <div className="bg-gradient-to-br from-slate-800/70 via-slate-800/60 to-slate-900/70 backdrop-blur-xl border border-cyan-500/30 rounded-2xl p-6 shadow-2xl shadow-cyan-500/20 hover:shadow-cyan-500/30 transition-all duration-300">
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-2 animate-pulse" style={{animationDuration: '3s'}}>
@@ -1382,151 +1450,74 @@ const resetCycle = () => {
                 </div>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* Grid Secundário - Quests e Fila lado a lado (Otimizado) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Card de Quests */}
-          <div className="bg-gradient-to-br from-purple-900/30 via-slate-800/50 to-slate-900/60 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-5 shadow-2xl shadow-purple-500/10">
-            <div className="flex items-center gap-3 mb-4">
-              <Trophy className="w-5 h-5 text-yellow-400" />
-              <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-purple-400 to-pink-400">
-                Missões Semanais
-              </h2>
-            </div>
+            {/* Missões Semanais - Compacta */}
+            <div className="bg-gradient-to-br from-purple-900/30 via-slate-800/50 to-slate-900/60 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-5 shadow-2xl shadow-purple-500/10">
+              <div className="flex items-center gap-2 mb-4">
+                <Trophy className="w-5 h-5 text-yellow-400" />
+                <h2 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-purple-400 to-pink-400">
+                  Missões Semanais
+                </h2>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {fourQuests.map((quest) => {
-                const progressPct = quest.target > 0 ? Math.min(100, (quest.progress / quest.target) * 100) : 0;
-                return (
-                  <div
-                    key={quest.id}
-                    className={`relative overflow-hidden rounded-xl p-3 transition-all duration-300 ${
-                      quest.completed
-                        ? 'bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-2 border-green-500/50'
-                        : 'bg-slate-800/60 border-2 border-slate-700/50 hover:border-purple-500/50'
-                    }`}
-                  >
-                    {quest.completed && (
-                      <div className="absolute top-1 right-1">
-                        <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                          <span className="text-white font-bold text-sm">✓</span>
+              <div className="space-y-3">
+                {fourQuests.map((quest) => {
+                  const progressPct = quest.target > 0 ? Math.min(100, (quest.progress / quest.target) * 100) : 0;
+                  return (
+                    <div
+                      key={quest.id}
+                      className={`relative overflow-hidden rounded-xl p-3 transition-all duration-300 ${
+                        quest.completed
+                          ? 'bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-2 border-green-500/50'
+                          : 'bg-slate-800/60 border-2 border-slate-700/50 hover:border-purple-500/50'
+                      }`}
+                    >
+                      {quest.completed && (
+                        <div className="absolute top-2 right-2">
+                          <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                            <span className="text-white font-bold text-xs">✓</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mb-2">
+                        <h3 className={`font-bold text-xs mb-1 ${quest.completed ? 'text-green-300' : 'text-white'}`}>
+                          {quest.title}
+                        </h3>
+                        <div className="flex items-center gap-1 text-xs text-gray-400">
+                          <Target className="w-3 h-3" />
+                          <span>{quest.progress} / {quest.target}</span>
                         </div>
                       </div>
-                    )}
 
-                    <div className="mb-2">
-                      <h3 className={`font-bold text-xs mb-1 ${quest.completed ? 'text-green-300' : 'text-white'}`}>
-                        {quest.title}
-                      </h3>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <Target className="w-3 h-3" />
-                        <span>{quest.progress} / {quest.target}</span>
+                      {/* Progress bar */}
+                      <div className="mb-2">
+                        <div className="h-1.5 rounded-full bg-slate-700/50 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              quest.completed
+                                ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                                : 'bg-gradient-to-r from-purple-400 to-pink-500'
+                            }`}
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Rewards */}
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-yellow-400 font-bold">🪙 {quest.coins_reward}</span>
+                          <span className="text-purple-400 font-bold">⭐ {quest.xp_reward}</span>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Progress bar */}
-                    <div className="mb-2">
-                      <div className="h-1.5 rounded-full bg-slate-700/50 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            quest.completed
-                              ? 'bg-gradient-to-r from-green-400 to-emerald-500'
-                              : 'bg-gradient-to-r from-purple-400 to-pink-500'
-                          }`}
-                          style={{ width: `${progressPct}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Rewards */}
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-yellow-400 font-bold">🪙 {quest.coins_reward}</span>
-                        <span className="text-purple-400 font-bold">⭐ {quest.xp_reward}</span>
-                      </div>
-                      {quest.completed && (
-                        <span className="text-green-400 font-bold text-xs">✓</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-
-          {/* Fila de Conteúdos (Otimizado - lado a lado com Quests) */}
-          <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-5 shadow-xl">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-base font-bold text-white">Fila de conteúdos</h2>
-            <Button
-              onClick={() => {
-                // Gera uma cor única ao abrir o diálogo
-                const existingColors = subjects.map(s => s.color);
-                const uniqueColor = generateUniqueColor(existingColors);
-                setNewSubject({ name: '', color: uniqueColor, time_goal: 300 });
-                setShowAddSubject(true);
-              }}
-              className="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg px-3 py-1.5 text-sm"
-              size="sm"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Adicionar
-            </Button>
-          </div>
-
-          {subjects.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-400 text-lg mb-4">Nenhuma matéria adicionada ainda</p>
-              <p className="text-gray-500 text-sm">Clique em "Adicionar" para criar sua primeira matéria</p>
-            </div>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={subjects.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-2">
-                  {subjects.map(subject => {
-  const progress = getSubjectProgress(subject.id);
-  return (
-    <SortableSubjectItem
-      key={`${subject.id}-${progressUpdateTrigger}`}
-      subject={subject}
-      isActive={currentSubject?.id === subject.id}
-      onClick={() => { setCurrentSubject(subject); setProgressUpdateTrigger(p => p + 1); }}
-      onEdit={setShowEditSubject}
-      onDelete={handleDeleteSubject}
-      progress={progress}
-      forceUpdateKey={progressUpdateTrigger}
-    />
-  );
-})}
-
-
-                </div>
-              </SortableContext>
-
-              <DragOverlay>
-                {activeId && activeSubject ? (
-                  <div className="bg-slate-800 border-2 border-cyan-400 rounded-xl p-4 shadow-2xl opacity-90">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: activeSubject.color }}
-                      />
-                      <span className="font-semibold text-white">{activeSubject.name}</span>
-                    </div>
-                  </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          )}
         </div>
-      </div>
       </div>
 
       {/* Dialog Adicionar Matéria */}
