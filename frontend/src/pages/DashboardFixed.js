@@ -261,6 +261,7 @@ function DashboardFixed() {
   // Estados de UI
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [showEditSubject, setShowEditSubject] = useState(null);
+  const [showResetSubjectDialog, setShowResetSubjectDialog] = useState(false);
   const [newSubject, setNewSubject] = useState({ name: '', color: '#3B82F6', time_goal: 300 });
   const [activeId, setActiveId] = useState(null);
   const [isManualSubjectSelection, setIsManualSubjectSelection] = useState(false); // Rastreia se foi seleção manual
@@ -561,56 +562,101 @@ const handleBlockComplete = useCallback(async () => {
     currentPhase === 'study' ? 'Bloco de estudo completo!' : 'Pausa completa!'
   );
 
-  // monta o bloco concluído (minutos) - CORRIGIDO: usa settings.long_break_duration diretamente
-  const concludedMinutes = currentPhase === 'study'
+  // monta o bloco concluído (minutos)
+  // IMPORTANTE: Para pausa longa, no TIMER mostra 30min mas na BARRA conta só 10min
+  const concludedMinutesTimer = currentPhase === 'study'
     ? (settings?.study_duration || 50)
     : (currentPhase === 'long_break'
         ? (settings?.long_break_duration || 30)
         : (settings?.break_duration || 10));
 
+  // Para a barra: pausas longas contam como pausas curtas (10min)
+  const concludedMinutesProgress = currentPhase === 'study'
+    ? (settings?.study_duration || 50)
+    : (settings?.break_duration || 10); // Ambas pausas contam como 10min na barra
+
   const newBlock = {
       type: currentPhase,
       timestamp: new Date().toISOString(),
-      duration: currentPhase === 'study' ? settings.study_duration : 
-                currentPhase === 'long_break' ? settings.long_break_duration : settings.break_duration
+      duration: concludedMinutesTimer, // Duração real no timer
+      progressDuration: concludedMinutesProgress // Duração para progresso
     };
 
   if (currentPhase === 'study' && currentSubject) {
     newBlock.subjectId = currentSubject.id;
 
-    // 1) OTIMISTA: sobe a barra já
+    // 1) OTIMISTA: sobe a barra já (COM pausas incluídas)
     const goal = Number(currentSubject.time_goal || 0) || Infinity;
-    updateProgress(currentSubject.id, concludedMinutes, goal);
+    updateProgress(currentSubject.id, concludedMinutesProgress, goal);
 
     // 2) dispara API sem travar a UI
     try {
       const resp = await api.post('/study/end', {
         session_id: sessionId,
-        duration: concludedMinutes,
+        duration: concludedMinutesTimer,
         skipped: false
       });
       setSessionId(null);
-      // atualiza stats (opcional, só para cards/quests)
-      api.get('/stats').then(r => setStats(r.data || {})).catch(()=>{});
-      toast.success(`Bloco de ${currentSubject.name} completo! 🎉`);
+      
+      // Atualiza stats e processa XP/coins
+      const freshStats = await api.get('/stats');
+      setStats(freshStats.data || {});
+      
+      // Mostra ganhos de XP e coins
+      if (resp.data?.coins_earned > 0) {
+        toast.success(`Bloco de ${currentSubject.name} completo! +${resp.data.coins_earned} coins, +${resp.data.xp_earned} XP! 🎉`);
+      } else {
+        toast.success(`Bloco de ${currentSubject.name} completo! 🎉`);
+      }
+      
+      // Atualiza user data para refletir XP/coins
+      refreshUser();
     } catch (error) {
       console.error('Erro ao salvar sessão:', error);
       toast.error('Erro ao salvar progresso (mantendo progresso local)');
-      // (se quiser, poderia reverter o progresso aqui)
     }
   } else {
+    // PAUSAS TAMBÉM CONTAM NA BARRA
+    if (currentSubject) {
+      const goal = Number(currentSubject.time_goal || 0) || Infinity;
+      updateProgress(currentSubject.id, concludedMinutesProgress, goal);
+      newBlock.subjectId = currentSubject.id;
+    }
+    
     toast.success(`${currentPhase === 'long_break' ? 'Pausa Longa' : currentPhase === 'short_break' ? 'Pausa Curta' : 'Pausa'} concluída!`);
   }
 
   // 3) registra no histórico (sempre pelo set funcional)
   setBlockHistory(prev => [...prev, newBlock]);
 
-  // 4) prepara próxima fase/tempo - CORRIGIDO
+  // 4) Verificar se matéria completou e deve mudar automaticamente
+  if (currentSubject) {
+    const currentProgress = localProgress[currentSubject.id] || 0;
+    const updatedProgress = currentProgress + concludedMinutesProgress;
+    const subjectGoal = currentSubject.time_goal || 0;
+    
+    // Se completou a matéria
+    if (updatedProgress >= subjectGoal) {
+      const currentIndex = subjects.findIndex(s => s.id === currentSubject.id);
+      
+      // Verifica se há próxima matéria
+      if (currentIndex < subjects.length - 1) {
+        const nextSubject = subjects[currentIndex + 1];
+        setCurrentSubject(nextSubject);
+        setIsManualSubjectSelection(false);
+        toast.success(`✅ ${currentSubject.name} completa! Mudando para: ${nextSubject.name}`);
+      } else {
+        toast.success('🎉 Parabéns! Você completou todo o ciclo de estudos!', { duration: 5000 });
+      }
+    }
+  }
+
+  // 5) prepara próxima fase/tempo - CORRIGIDO
   // define a próxima fase e tempo
-const studyCountSoFar = (blockHistory.filter(b => b.type === 'study').length) + (currentPhase === 'study' ? 1 : 0);
-const nextPhase = currentPhase === 'study'
-  ? (studyCountSoFar % settings.long_break_interval === 0 ? 'long_break' : 'short_break')
-  : 'study';
+  const studyCountSoFar = (blockHistory.filter(b => b.type === 'study').length) + (currentPhase === 'study' ? 1 : 0);
+  const nextPhase = currentPhase === 'study'
+    ? (studyCountSoFar % settings.long_break_interval === 0 ? 'long_break' : 'short_break')
+    : 'study';
 
   // CORRIGIDO: usar os valores corretos de settings para cada fase
   const nextDuration = nextPhase === 'study'
@@ -619,7 +665,7 @@ const nextPhase = currentPhase === 'study'
 
   backgroundTimer.reset(nextDuration * 60);
   toast.info(nextPhase !== 'study' ? (nextPhase === 'long_break' ? 'Próximo: Pausa Longa 🌟' : 'Próximo: Pausa Curta ☕') : 'Próximo: Estudo 📚');
-}, [currentPhase, currentSubject, settings, sessionId, blockHistory, backgroundTimer]);
+}, [currentPhase, currentSubject, settings, sessionId, blockHistory, backgroundTimer, localProgress, subjects, refreshUser]);
 
 handleBlockCompleteRef.current = handleBlockComplete;
 
@@ -789,18 +835,26 @@ const previousBlock = useCallback(() => {
   // duração confiável em minutos
   const defaultStudyMin = settings?.study_duration || 50;
   const defaultBreakMin = settings?.break_duration || 10;
-  const minutesToUndo =
+  const minutesToUndoTimer =
     typeof last?.duration === 'number'
       ? last.duration
       : (last?.type === 'study'
           ? defaultStudyMin
           : (last.type === 'long_break' ? settings.long_break_duration : settings.break_duration));
 
-  // 1) Se foi ESTUDO (real ou pulado), desfaz progresso
-  if (last?.type === 'study' && last?.subjectId) {
+  // Para a barra: pausas longas sempre contam como pausas curtas (10min)
+  const minutesToUndoProgress = 
+    typeof last?.progressDuration === 'number'
+      ? last.progressDuration
+      : (last?.type === 'study'
+          ? defaultStudyMin
+          : defaultBreakMin); // Ambas pausas = 10min na barra
+
+  // 1) Se foi ESTUDO ou PAUSA, desfaz progresso (pausas também contam!)
+  if (last?.subjectId) {
     const subj = subjects.find(s => s.id === last.subjectId);
     const goal = Number(subj?.time_goal || 0) || Infinity;
-    updateProgress(last.subjectId, -minutesToUndo, goal);
+    updateProgress(last.subjectId, -minutesToUndoProgress, goal);
   }
 
   // 2) remove do histórico
@@ -808,7 +862,7 @@ const previousBlock = useCallback(() => {
 
   // 3) carrega o tempo do bloco que “voltou”
   backgroundTimer.pause();
-  backgroundTimer.reset(minutesToUndo * 60);
+  backgroundTimer.reset(minutesToUndoTimer * 60);
   setSessionId(null);
 
   toast.success('Voltou 1 bloco');
@@ -866,19 +920,29 @@ const skipBlock = useCallback(() => {
     toast.info('Bloco de estudo pulado (contabilizado).');
 
   } else {
-    // Pulando pausa: não mexe em progresso
+    // Pulando pausa: AGORA CONTA NA BARRA (pausa longa conta como curta)
+    const pauseDurationTimer = currentPhase === 'long_break' ? breakMin * 3 : breakMin;
+    const pauseDurationProgress = breakMin; // Ambas pausas = 10min na barra
+    
     const newBlock = {
       type: currentPhase,
       timestamp: new Date().toISOString(),
-      duration: currentPhase === 'long_break' ? breakMin * 3 : breakMin,
+      duration: pauseDurationTimer, // Duração real
+      progressDuration: pauseDurationProgress, // Duração para progresso
       skipped: true,
       ...(currentSubject ? { subjectId: currentSubject.id } : {})
     };
     setBlockHistory(prev => [...prev, newBlock]);
 
+    // Conta a pausa na barra da matéria atual
+    if (currentSubject) {
+      const goal = Number(currentSubject.time_goal || 0) || Infinity;
+      updateProgress(currentSubject.id, pauseDurationProgress, goal);
+    }
+
     // próxima fase: estudo
     backgroundTimer.reset((settings?.study_duration || 50) * 60);
-    toast.info('Pausa pulada.');
+    toast.info('Pausa pulada (contabilizada).');
   }
 
   // força repaint de tudo
@@ -891,7 +955,17 @@ const skipBlock = useCallback(() => {
 
    
 
-const resetCurrentSubject = () => {
+// Abrir dialog de confirmação para resetar matéria
+const openResetSubjectDialog = () => {
+  if (!currentSubject) { 
+    toast.error("Nenhuma matéria selecionada"); 
+    return; 
+  }
+  setShowResetSubjectDialog(true);
+};
+
+// Resetar matéria (chamado após confirmação do dialog)
+const resetCurrentSubject = (resetLongBreakCounter = false) => {
   if (!currentSubject) { toast.error("Nenhuma matéria selecionada"); return; }
   const sid = currentSubject.id;
 
@@ -900,6 +974,13 @@ const resetCurrentSubject = () => {
   setBlockHistory(prev => prev.filter(b => b.subjectId !== sid));
   backgroundTimer.pause();
   setSessionId(null);
+  
+  // Se optou por resetar a contagem de blocos até pausa longa
+  if (resetLongBreakCounter) {
+    // Remove TODOS os blocos de estudo do histórico (reseta contagem global)
+    setBlockHistory(prev => prev.filter(b => b.type !== 'study'));
+    console.log('[resetCurrentSubject] Contagem de blocos até pausa longa resetada');
+  }
   
   // NOVO: Resetar timer para bloco de ESTUDOS
   const studyDuration = settings?.study_duration || 50;
@@ -914,7 +995,13 @@ const resetCurrentSubject = () => {
     console.error('[localStorage] Erro ao limpar matéria:', error);
   }
   
-  toast.success("Matéria atual resetada 100% - Timer ajustado para estudo");
+  const message = resetLongBreakCounter 
+    ? "Matéria e contagem de pausa longa resetadas!" 
+    : "Matéria resetada (contagem de pausa longa mantida)";
+  toast.success(message);
+  
+  // Fechar dialog
+  setShowResetSubjectDialog(false);
   
   // NOVO: Força re-render
   setProgressUpdateTrigger(prev => prev + 1);
@@ -1336,7 +1423,7 @@ const resetCycle = () => {
                       <DropdownMenuItem
                         disabled={!currentSubject}
                         className="text-gray-300 focus:bg-slate-700 focus:text-white"
-                        onSelect={(e) => { e.preventDefault(); resetCurrentSubject(); }}
+                        onSelect={(e) => { e.preventDefault(); openResetSubjectDialog(); }}
                       >
                         Resetar matéria atual
                       </DropdownMenuItem>
@@ -1871,6 +1958,57 @@ const resetCycle = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Dialog de confirmação para resetar matéria */}
+      <Dialog open={showResetSubjectDialog} onOpenChange={setShowResetSubjectDialog}>
+        <DialogContent className="bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl font-bold">
+              Resetar Matéria Atual
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 pt-4">
+            <p className="text-gray-300 text-base">
+              Você está prestes a resetar a matéria <span className="font-bold text-cyan-400">{currentSubject?.name}</span>.
+            </p>
+            <p className="text-gray-400 text-sm">
+              Deseja também resetar a contagem de blocos até a próxima pausa longa?
+            </p>
+            
+            <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600/50">
+              <p className="text-sm text-gray-300 mb-2">
+                <span className="font-semibold text-cyan-400">✓ Sim:</span> Reseta tudo e a próxima pausa longa volta para o padrão (após 4 blocos)
+              </p>
+              <p className="text-sm text-gray-300">
+                <span className="font-semibold text-amber-400">✗ Não:</span> Apenas reseta a matéria, mantendo a contagem atual de blocos
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={() => resetCurrentSubject(true)}
+                className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold"
+              >
+                Sim, resetar tudo
+              </Button>
+              <Button
+                onClick={() => resetCurrentSubject(false)}
+                className="bg-amber-600 hover:bg-amber-500 text-white font-semibold"
+              >
+                Não, manter contagem
+              </Button>
+            </div>
+            
+            <Button
+              onClick={() => setShowResetSubjectDialog(false)}
+              variant="outline"
+              className="w-full border-slate-600 text-gray-300 hover:bg-slate-700/50"
+            >
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 
