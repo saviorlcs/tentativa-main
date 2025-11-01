@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
+import Footer from "../components/Footer";
 import { 
   Clock, Target, Trophy, Users, Sparkles, Zap, Heart, Star, 
   BookOpen, Calendar, Award, TrendingUp, Flame, Gift, 
@@ -558,16 +559,7 @@ export default function Sobre() {
       </div>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-cyan-500/20 bg-slate-900/80 backdrop-blur-xl py-8 mt-20">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-gray-400 text-sm mb-2">
-            © 2025 Pomociclo. Feito com 💙 para estudantes que querem ir além.
-          </p>
-          <p className="text-gray-500 text-xs">
-            Estude de forma inteligente, não cansativa. 🍅📚
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

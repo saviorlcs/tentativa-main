@@ -21,7 +21,7 @@ import {
   BookOpen,
   Target,
 } from "lucide-react";
-
+import Footer from '../components/Footer';
 export default function Revisao() {
   const [user, setUser] = useState(null);
   const [subjects, setSubjects] = useState([]); // matérias de revisão
@@ -707,6 +707,7 @@ async function loadSubjectSessions(subjectId) {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

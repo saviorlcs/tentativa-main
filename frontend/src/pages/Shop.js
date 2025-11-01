@@ -22,6 +22,7 @@ import SealAvatar from "@/components/SealAvatar";
 import { useApp } from "@/context/AppContext.jsx"; 
 import * as siteStyle from "../lib/siteStyle";
 import { setCycleState } from "../lib/siteStyle";
+import Footer from '../components/Footer';
 // Mostrar só a seção de Selos (desliga bordas/temas)
 const VISIBLE_TYPES = ["seal"]; // opções possíveis: "seal", "border", "theme"
 
@@ -532,6 +533,7 @@ function restoreEquipped(equippedIds) {
           </Tabs>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

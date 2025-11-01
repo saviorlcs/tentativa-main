@@ -7,7 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-
+import Footer from '../components/Footer';
 export default function Groups() {
   const [user, setUser] = useState(undefined);
   const [mine, setMine] = useState([]);
@@ -203,6 +203,7 @@ export default function Groups() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

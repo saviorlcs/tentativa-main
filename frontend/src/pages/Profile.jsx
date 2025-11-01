@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import PeriodFilter from "@/components/profile/PeriodFilter";
 import StatsCard from "@/components/profile/StatsCard";
 import ConsistencyCalendar from "@/components/profile/ConsistencyCalendar";
 import { Button } from "@/components/ui/button";
-import { Clock, Flame, Calendar, TrendingUp, Target, CheckCircle, Download, ArrowLeft } from "lucide-react";
+import { Clock, Flame, Calendar, TrendingUp, Target, CheckCircle, Download, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Profile() {
@@ -117,18 +118,10 @@ export default function Profile() {
   const isOwnProfile = !userId || userId === currentUser?.id;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-8 px-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Back button */}
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="text-slate-400 hover:text-white"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </Button>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <Header />
+      
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Profile Header */}
         <ProfileHeader user={stats.user} />
 
@@ -198,11 +191,24 @@ export default function Profile() {
             subtitle={`Últimos ${stats.period_days} dias`}
             color="yellow"
           />
+          
+          {/* Matéria Mais Estudada */}
+          {stats.stats.most_studied_subject && (
+            <StatsCard
+              icon={BookOpen}
+              title="Matéria Mais Estudada"
+              value={stats.stats.most_studied_subject.name}
+              subtitle={`${stats.stats.most_studied_subject.minutes} minutos`}
+              color="cyan"
+            />
+          )}
         </div>
 
         {/* Consistency Calendar */}
         <ConsistencyCalendar days={calendarData.days} year={calendarData.year} />
       </div>
+      
+      <Footer />
     </div>
   );
 }

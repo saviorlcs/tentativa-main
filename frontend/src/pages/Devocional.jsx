@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Check, Book, Heart, Sparkles, Calendar } from 'lucide-react';
 import axios from 'axios';
 import Header from '../components/Header';
-
+import Footer from '../components/Footer';
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
 // Helper: dia do ano
@@ -391,6 +391,7 @@ function Devocional() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

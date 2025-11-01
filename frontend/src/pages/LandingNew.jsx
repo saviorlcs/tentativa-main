@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Clock, Target, Trophy, Users, Sparkles, Zap, Heart, Star } from "lucide-react";
 import AnimatedBackground from "../components/AnimatedBackground";
-
+import Footer from '../components/Footer';
 // src/pages/LandingNew.jsx (ou Landing.js)
 import { api } from "@/lib/api";
 

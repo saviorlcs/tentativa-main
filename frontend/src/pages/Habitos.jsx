@@ -19,7 +19,7 @@ import {
   Target,
   Flame,
 } from "lucide-react";
-
+import Footer from '../components/Footer';
 const FREQUENCIES = [
   { value: "daily", label: "📅 Diário" },
   { value: "weekly", label: "📆 Semanal" },
@@ -514,6 +514,8 @@ export default function Habitos() {
 
         {historyHabit && <HabitHistory habit={historyHabit} onClose={() => setHistoryHabit(null)} />}
       </div>
+      
+<Footer />
     </div>
   );
 }

@@ -28,6 +28,10 @@ import { Music } from "lucide-react";
 import * as siteStyle from "./lib/siteStyle";
 import { AppProvider, useApp } from "@/context/AppContext";
 import Profile from "./pages/Profile";
+import TermosDeUso from "./pages/TermosDeUso";
+import Privacidade from "./pages/Privacidade";
+import TecnicaPomodoro from "./pages/TecnicaPomodoro";
+import Comunidade from "./pages/Comunidade";
 /* ---------------- Ping simples ao /api (equivalente ao primeiro código) ---------------- */
 function HelloProbe() {
   useEffect(() => {
@@ -241,6 +245,12 @@ export default function App() {
             <Route path="/habitos" element={<Habitos />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:userId" element={<Profile />} />
+            <Route path="/termos-de-uso" element={<TermosDeUso />} />
+            <Route path="/privacidade" element={<Privacidade />} />
+            <Route path="/tecnica-pomodoro" element={<TecnicaPomodoro />} />
+            <Route path="/whatsapp" element={<Comunidade />} />
+            <Route path="/discord" element={<Comunidade />} />
+            <Route path="/instagram" element={<Comunidade />} />
           </Routes>
           <CookieConsent />
           

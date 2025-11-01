@@ -7,6 +7,7 @@ import Header from '../components/Header';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { ArrowLeft, DollarSign, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Edit2, X, Check } from 'lucide-react';
+import Footer from '../components/Footer';
 
 const MONTHS = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
@@ -605,6 +606,7 @@ export default function Financeiro() {
           💡 <strong>Dica:</strong> Clique em qualquer célula para editar o valor. Pressione Enter para salvar ou Esc para cancelar.
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

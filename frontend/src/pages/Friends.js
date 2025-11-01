@@ -24,7 +24,7 @@ import {
   PauseCircle,
   Coffee,
 } from "lucide-react";
-
+import Footer from '../components/Footer';
 /* ————— UI helpers (mantive sua lógica/estilo) ————— */
 const Pill = ({ className = "", children }) => (
   <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] ${className}`}>
@@ -91,6 +91,7 @@ const TimerBadge = ({ timer_state, studying, seconds_left }) => {
 
 /* ————— Cards ————— */
 function FriendCard({ f }) {
+  const navigate = useNavigate();
   const handle = f?.nickname && f?.tag ? `${f.nickname}#${f.tag}` : f?.name || "Amigo";
   const [sec, setSec] = useState(typeof f.seconds_left === "number" ? f.seconds_left : null);
 
@@ -120,7 +121,10 @@ function FriendCard({ f }) {
               f.status === "away" ? "bg-amber-400 shadow-lg shadow-amber-400/50" : 
               "bg-zinc-500"
             }`} />
-            <span className="text-white font-semibold text-lg truncate max-w-[60vw] sm:max-w-md">
+            <span 
+              onClick={() => navigate(`/profile/${f.id}`)}
+              className="text-white font-semibold text-lg truncate max-w-[60vw] sm:max-w-md cursor-pointer hover:text-cyan-400 transition-colors"
+            >
               {handle}
             </span>
             <StatusPill status={f.status} />
@@ -467,6 +471,7 @@ export default function Friends() {
           </main>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

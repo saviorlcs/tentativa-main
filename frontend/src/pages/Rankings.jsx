@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import ModernSealAvatar from "@/components/ModernSealAvatar";
 import { Users, Globe2, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
-
+import Footer from '../components/Footer';
 const PeriodPill = ({ value, current, onChange, children }) => (
   <button
     onClick={() => onChange(value)}
@@ -232,6 +232,7 @@ export default function Rankings() {
           )}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -39,6 +39,7 @@ import {
    DropdownMenuLabel,
    DropdownMenuSeparator
  } from "../components/ui/dropdown-menu";
+ import Footer from '../components/Footer';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 const API = `${BACKEND_URL}/api`;
 
@@ -1315,23 +1316,6 @@ const resetCycle = () => {
                       size={80}
                       className="shadow-2xl"
                     />
-                    {/* Display de Coins e XP */}
-                    <div className="flex gap-4 mt-3 items-center">
-                      <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 px-4 py-2 rounded-full border border-yellow-500/30">
-                        <span className="text-2xl">💰</span>
-                        <div className="text-left">
-                          <div className="text-xs text-yellow-300 font-medium">Coins</div>
-                          <div className="text-lg font-bold text-yellow-400">{user.coins || 0}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 px-4 py-2 rounded-full border border-cyan-500/30">
-                        <span className="text-2xl">⭐</span>
-                        <div className="text-left">
-                          <div className="text-xs text-cyan-300 font-medium">XP (Nível {user.level || 1})</div>
-                          <div className="text-lg font-bold text-cyan-400">{user.xp || 0}</div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 )}
                 {!user && (
@@ -2055,6 +2039,7 @@ const resetCycle = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <Footer />
     </div>
   );
 

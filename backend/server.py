@@ -1056,19 +1056,25 @@ async def get_profile_stats(
             "completed": True,
             "start_time": {"$gte": start_iso}
         },
-        {"_id": 0, "start_time": 1, "duration": 1, "skipped": 1}
+        {"_id": 0, "start_time": 1, "duration": 1, "skipped": 1, "subject_id": 1}
     ).to_list(100000)
     
     # Calcula estatísticas
     total_minutes = 0
     blocks_completed = 0
     active_dates = set()
+    subject_minutes = {}  # Para calcular matéria mais estudada
     
     for session in sessions:
         duration = int(session.get("duration", 0))
         skipped = session.get("skipped", False)
+        subject_id = session.get("subject_id")
         
         total_minutes += duration
+        
+        # Acumula minutos por matéria
+        if subject_id:
+            subject_minutes[subject_id] = subject_minutes.get(subject_id, 0) + duration
         
         # Bloco completo = sessão completa e não pulada
         if not skipped:
@@ -1084,6 +1090,24 @@ async def get_profile_stats(
     
     active_days = len(active_dates)
     average_per_day = (total_minutes / active_days) if active_days > 0 else 0
+    
+    # Encontra a matéria mais estudada
+    most_studied = None
+    if subject_minutes:
+        most_studied_id = max(subject_minutes, key=subject_minutes.get)
+        most_studied_minutes = subject_minutes[most_studied_id]
+        
+        # Busca informações da matéria
+        subject_doc = await db.subjects.find_one(
+            {"id": most_studied_id, "user_id": user_id},
+            {"_id": 0, "name": 1}
+        )
+        
+        if subject_doc:
+            most_studied = {
+                "name": subject_doc.get("name", "Desconhecida"),
+                "minutes": most_studied_minutes
+            }
     
     # Busca streak atual do usuário
     streak_days = int(target_user.get("streak_days", 0))
@@ -1130,7 +1154,8 @@ async def get_profile_stats(
             "active_days": active_days,
             "average_per_day_minutes": round(average_per_day, 1),
             "cycles_completed": cycles_completed,
-            "blocks_completed": blocks_completed
+            "blocks_completed": blocks_completed,
+            "most_studied_subject": most_studied
         },
         "period": period,
         "period_days": days

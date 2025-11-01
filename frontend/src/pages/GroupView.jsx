@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { getGroup, getGroupPresence, getGroupRanking, leaveGroup } from "@/lib/groups";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-
+import Footer from '../components/Footer';
 const Pill = ({ className="", children }) => (
   <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] ${className}`}>{children}</span>
 );
@@ -127,6 +127,7 @@ export default function GroupView() {
           </>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

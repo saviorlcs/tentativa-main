@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
+import Footer from '../components/Footer';
 // Sons disponÃ­veis
 // Sons disponíveis
 const SOUND_OPTIONS = [
@@ -546,6 +546,7 @@ function playSoundById(soundId, duration = 2, onend) {
           </Card>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

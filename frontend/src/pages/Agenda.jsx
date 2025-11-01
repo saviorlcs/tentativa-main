@@ -22,7 +22,7 @@ import {
   BookOpen,
   Brain,
 } from "lucide-react";
-
+import Footer from '../components/Footer';
 /* ===================== helpers ===================== */
 const pad2 = (n) => String(n).padStart(2, "0");
 const toISODate = (d) => d.toISOString().slice(0, 10);
@@ -861,6 +861,7 @@ export default function Agenda() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
