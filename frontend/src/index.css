@@ -206,7 +206,7 @@ code {
 /* exemplo – corpo usa as cores do tema */
 body{
   background:
-    radial-gradient(1000px circle at 20% -10%, var(--surface), transparent 60%),
+    radial-gradient(1000px circle at 20% -10%, var(--surface), transparent 80%),
     linear-gradient(180deg, var(--bg), #0a0f1a);
   color: var(--text);
 }
@@ -214,7 +214,7 @@ body{
 /* Aplica cores do tema em elementos comuns */
 .App {
   background:
-    radial-gradient(1000px circle at 20% -10%, var(--surface), transparent 60%),
+    radial-gradient(1000px circle at 20% -10%, var(--surface), transparent 80%),
     linear-gradient(180deg, var(--bg), #0a0f1a);
   min-height: 100vh;
 }
@@ -286,16 +286,16 @@ body{
 
 /* Box-shadow com cores do tema */
 .shadow-primary-themed {
-  box-shadow: 0 4px 6px -1px var(--primary), 0 2px 4px -1px var(--primary);
+  box-shadow: 0 2px 4px -1px var(--primary), 0 1px 2px -1px var(--primary);
 }
 
 .shadow-accent-themed {
-  box-shadow: 0 4px 6px -1px var(--accent), 0 2px 4px -1px var(--accent);
+  box-shadow: 0 2px 4px -1px var(--accent), 0 1px 2px -1px var(--accent);
 }
 @keyframes auraPulse {
-  0%   { box-shadow: 0 0 16px rgba(56,189,248,.12); }
-  50%  { box-shadow: 0 0 28px rgba(168,85,247,.24); }
-  100% { box-shadow: 0 0 16px rgba(56,189,248,.12); }
+  0%   { box-shadow: 0 0 8px rgba(56,189,248,.06); }
+  50%  { box-shadow: 0 0 12px rgba(168,85,247,.10); }
+  100% { box-shadow: 0 0 8px rgba(56,189,248,.06); }
 }
 .seal-animated {
   animation: auraPulse 3.5s ease-in-out infinite;
