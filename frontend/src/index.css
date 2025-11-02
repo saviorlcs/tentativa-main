@@ -102,6 +102,39 @@ body{
     linear-gradient(180deg, var(--bg), #0a0f1a);
   color: var(--text);
 }
+
+/* Aplica cores do tema em elementos comuns */
+.App {
+  background:
+    radial-gradient(1000px circle at 20% -10%, var(--surface), transparent 60%),
+    linear-gradient(180deg, var(--bg), #0a0f1a);
+  min-height: 100vh;
+}
+
+/* Gradientes usando cores do tema */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+}
+
+.text-primary-themed {
+  color: var(--primary);
+}
+
+.text-accent-themed {
+  color: var(--accent);
+}
+
+.bg-primary-themed {
+  background-color: var(--primary);
+}
+
+.bg-accent-themed {
+  background-color: var(--accent);
+}
+
+.border-primary-themed {
+  border-color: var(--primary);
+}
 @keyframes auraPulse {
   0%   { box-shadow: 0 0 16px rgba(56,189,248,.12); }
   50%  { box-shadow: 0 0 28px rgba(168,85,247,.24); }

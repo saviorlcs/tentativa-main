@@ -197,7 +197,26 @@ def generate_visual_effects(score: float, rarity: str, item_type: str, index: in
     # Temas variados por tipo
     seal_themes = ["default", "fire", "water", "earth", "air", "light", "dark", "cyber", "neon", "matrix", "aurora", "plasma", "quantum", "crystal", "cosmic", "stellar", "nebula", "void", "galaxy", "prisma", "hologram", "energy", "spirit", "divine", "chaos"]
     border_themes = ["default", "cyber", "neon", "circuit", "aurora", "plasma", "energy", "crystal", "cosmic", "divine", "void", "infinity"]
-    theme_themes = ["default", "cyber", "neon", "sunset", "forest", "aurora", "plasma", "ocean", "twilight", "cosmic", "phoenix", "void", "galaxy"]
+    # TEMAS PREMIUM - Organizados por raridade
+    # Comum (0-0.60): Temas básicos mas bonitos
+    # Raro (0.60-0.85): Temas vibrantes com efeitos sutis  
+    # Épico (0.85-0.95): Temas incríveis com animações
+    # Lendário (0.95-1.0): Temas únicos com efeitos especiais
+    theme_themes = [
+        # Comum (índices 0-14)
+        "default", "cyber", "neon", "ocean", "forest", 
+        "sunset", "twilight", "midnight", "slate", "storm",
+        "ember", "breeze", "tide", "shadow", "dawn",
+        
+        # Raro (índices 15-19)
+        "aurora", "plasma", "nebula", "crystal", "prism",
+        
+        # Épico (índices 20-23)
+        "cosmic", "phoenix", "void", "galaxy",
+        
+        # Lendário (índices 24)
+        "infinity"
+    ]
     
     if item_type == "seal":
         theme_list = seal_themes

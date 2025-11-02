@@ -183,12 +183,14 @@ function AppTheming() {
     })();
   }, []);
 
+  // Aplica temas (loja ou aparência básica)
   useEffect(() => {
     siteStyle.boot?.(); // injeta CSS base uma vez
     
     if (!loadedItems) return; // aguarda carregar os itens
     
-    if (user?.equipped_items && shopItems.length > 0) {
+    // Se tem tema da loja equipado, usa ele
+    if (user?.equipped_items?.theme && shopItems.length > 0) {
       // Cria um mapa de id -> item
       const itemsById = Object.fromEntries(shopItems.map(it => [it.id, it]));
       
@@ -199,7 +201,7 @@ function AppTheming() {
         theme: user.equipped_items.theme ? itemsById[user.equipped_items.theme] : null,
       };
       
-      console.log("[AppTheming] Aplicando efeitos equipados:", {
+      console.log("[AppTheming] Aplicando efeitos equipados da loja:", {
         sealId: user.equipped_items.seal,
         borderId: user.equipped_items.border,
         themeId: user.equipped_items.theme,
@@ -208,7 +210,61 @@ function AppTheming() {
         themeEffects: equippedData.theme?.effects,
       });
       
-      siteStyle.applyFromEquipped?.(equippedData); // aplica tema + borda
+      siteStyle.applyFromEquipped?.(equippedData); // aplica tema + borda da loja
+    } else if (user?.id) {
+      // Sem tema da loja, aplica tema gratuito (se houver)
+      (async () => {
+        try {
+          const prefsRes = await api.get('/user/appearance').catch(() => ({ data: {} }));
+          const prefs = prefsRes.data || {};
+          const colorScheme = prefs.color_scheme || 'pomociclo-default';
+          
+          // Esquemas de cores gratuitos (mesma lista de Appearance.jsx)
+          const FREE_SCHEMES = {
+            'pomociclo-default': {
+              primary: '#06b6d4',
+              accent: '#8b5cf6',
+              bg: '#0b1220',
+              surface: '#0f172a',
+              text: '#e5e7eb'
+            },
+            'midnight-blue': {
+              primary: '#3b82f6',
+              accent: '#60a5fa',
+              bg: '#0a0e1a',
+              surface: '#0f1419',
+              text: '#e2e8f0'
+            },
+            'dark-slate': {
+              primary: '#64748b',
+              accent: '#94a3b8',
+              bg: '#0f0f0f',
+              surface: '#1a1a1a',
+              text: '#e5e7eb'
+            },
+            'deep-space': {
+              primary: '#7c3aed',
+              accent: '#a78bfa',
+              bg: '#0a0a14',
+              surface: '#12121f',
+              text: '#e9d5ff'
+            }
+          };
+          
+          const scheme = FREE_SCHEMES[colorScheme] || FREE_SCHEMES['pomociclo-default'];
+          const root = document.documentElement;
+          
+          root.style.setProperty('--primary', scheme.primary);
+          root.style.setProperty('--accent', scheme.accent);
+          root.style.setProperty('--bg', scheme.bg);
+          root.style.setProperty('--surface', scheme.surface);
+          root.style.setProperty('--text', scheme.text);
+          
+          console.log("[AppTheming] Aplicando tema gratuito:", colorScheme, scheme);
+        } catch (e) {
+          console.error("[AppTheming] Erro ao carregar preferências de aparência:", e);
+        }
+      })();
     } else {
       siteStyle.reset?.(); // volta ao padrão se deslogar
     }

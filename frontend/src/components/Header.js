@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { Button } from "./ui/button";
-import { Trophy, ShoppingBag, Users, Settings, LogOut, ListOrdered, Book, Brain, Target } from "lucide-react";
+import { Trophy, ShoppingBag, Users, Settings, LogOut, ListOrdered, Book, Brain, Target, Palette } from "lucide-react";
 import ModernSealAvatar from "./ModernSealAvatar";
 import Notifications from "./Notifications";
 
@@ -243,6 +243,17 @@ const handleLogout = async () => {
             </button>
 
             <button
+              onClick={() => navigate("/aparencia")}
+              className="group relative px-3 py-2 rounded-lg hover:bg-purple-500/10 transition-all"
+              title="Aparência"
+            >
+              <Palette className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
+              <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                Aparência
+              </span>
+            </button>
+
+            <button
               onClick={() => navigate("/configuracoes")}
               className="group relative px-3 py-2 rounded-lg hover:bg-slate-500/10 transition-all"
               title="Configurações"
@@ -435,6 +446,14 @@ const handleLogout = async () => {
             >
               <Users className="w-6 h-6 text-teal-400" />
               <span className="font-semibold">Amigos</span>
+            </button>
+
+            <button
+              onClick={() => { navigate("/aparencia"); setMobileMenuOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-purple-500/10 transition-all text-white"
+            >
+              <Palette className="w-6 h-6 text-purple-400" />
+              <span className="font-semibold">Aparência</span>
             </button>
 
             <button

@@ -594,21 +594,40 @@ function convertBackendEffects(effects, itemType) {
     };
     
     // Mapeia o tema visual para o modo de background
+    // Comum: solid ou gradient-animated (simples)
+    // Raro: cycle-reactive (reage ao foco/break)
+    // Épico/Lendário: cosmic-parallax (parallax com estrelas)
     const themeToMode = {
+      // Comum - Solid/Gradient
       'default': 'solid',
-      'gradient-animated': 'gradient-animated',
       'cyber': 'gradient-animated',
       'neon': 'gradient-animated',
+      'ocean': 'solid',
+      'forest': 'solid',
       'sunset': 'gradient-animated',
-      'forest': 'cycle-reactive',
+      'twilight': 'solid',
+      'midnight': 'solid',
+      'slate': 'solid',
+      'storm': 'gradient-animated',
+      'ember': 'gradient-animated',
+      'breeze': 'solid',
+      'tide': 'gradient-animated',
+      'shadow': 'solid',
+      'dawn': 'gradient-animated',
+      
+      // Raro - Cycle Reactive
       'aurora': 'cycle-reactive',
       'plasma': 'cycle-reactive',
-      'ocean': 'cycle-reactive',
-      'twilight': 'cycle-reactive',
+      'nebula': 'cycle-reactive',
+      'crystal': 'cycle-reactive',
+      'prism': 'cycle-reactive',
+      
+      // Épico/Lendário - Cosmic Parallax
       'cosmic': 'cosmic-parallax',
       'phoenix': 'cosmic-parallax',
       'void': 'cosmic-parallax',
       'galaxy': 'cosmic-parallax',
+      'infinity': 'cosmic-parallax',
     };
     
     converted.bg = themeToMode[effects.theme] || 'solid';
