@@ -142,16 +142,25 @@ export default function Appearance() {
     const selectedScheme = FREE_COLOR_SCHEMES.find(s => s.id === scheme);
     
     if (selectedScheme) {
-      // Remove qualquer data-theme anterior
+      // CRITICAL FIX: Remove qualquer data-theme anterior primeiro
       root.removeAttribute('data-theme');
+      body.removeAttribute('data-theme');
       
-      // Aplica o novo data-theme se houver
+      // CRITICAL FIX: Aplica o novo data-theme tanto no root quanto no body
       if (selectedScheme.dataTheme) {
         root.setAttribute('data-theme', selectedScheme.dataTheme);
+        body.setAttribute('data-theme', selectedScheme.dataTheme);
         console.log('[Appearance] ✅ Data-theme aplicado:', selectedScheme.dataTheme);
       } else {
         console.log('[Appearance] ✅ Tema padrão (sem data-theme)');
       }
+      
+      // CRITICAL FIX: Força atualização imediata das variáveis CSS
+      // Isso garante que o navegador reaplique os estilos
+      root.style.display = 'none';
+      // Trigger reflow
+      void root.offsetHeight;
+      root.style.display = '';
       
       // Salva no localStorage para persistência
       localStorage.setItem('theme_mode', mode);

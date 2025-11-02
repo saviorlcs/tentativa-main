@@ -98,58 +98,68 @@ code {
 /* ============================================ */
 
 /* Tema 1: Midnight Purple (GRATUITO) */
+html[data-theme="midnight-purple"],
+body[data-theme="midnight-purple"],
 [data-theme="midnight-purple"] {
-  --bg:#0e0a1a;
-  --surface:#1a1229;
-  --primary:#a78bfa;
-  --accent:#c084fc;
-  --text:#e9d5ff;
-  --app-border: rgba(167,139,250,.30);
-  --app-glow: 0 0 8px rgba(167,139,250,.08);
+  --bg:#0e0a1a !important;
+  --surface:#1a1229 !important;
+  --primary:#a78bfa !important;
+  --accent:#c084fc !important;
+  --text:#e9d5ff !important;
+  --app-border: rgba(167,139,250,.30) !important;
+  --app-glow: 0 0 8px rgba(167,139,250,.08) !important;
 }
 
 /* Tema 2: Deep Ocean (GRATUITO) */
+html[data-theme="deep-ocean"],
+body[data-theme="deep-ocean"],
 [data-theme="deep-ocean"] {
-  --bg:#0a1018;
-  --surface:#0c1a2e;
-  --primary:#0ea5e9;
-  --accent:#38bdf8;
-  --text:#dbeafe;
-  --app-border: rgba(14,165,233,.32);
-  --app-glow: 0 0 8px rgba(14,165,233,.10);
+  --bg:#0a1018 !important;
+  --surface:#0c1a2e !important;
+  --primary:#0ea5e9 !important;
+  --accent:#38bdf8 !important;
+  --text:#dbeafe !important;
+  --app-border: rgba(14,165,233,.32) !important;
+  --app-glow: 0 0 8px rgba(14,165,233,.10) !important;
 }
 
 /* Tema 3: Forest Night (GRATUITO) */
+html[data-theme="forest-night"],
+body[data-theme="forest-night"],
 [data-theme="forest-night"] {
-  --bg:#0a120f;
-  --surface:#0f1e19;
-  --primary:#10b981;
-  --accent:#34d399;
-  --text:#d1fae5;
-  --app-border: rgba(16,185,129,.30);
-  --app-glow: 0 0 8px rgba(16,185,129,.08);
+  --bg:#0a120f !important;
+  --surface:#0f1e19 !important;
+  --primary:#10b981 !important;
+  --accent:#34d399 !important;
+  --text:#d1fae5 !important;
+  --app-border: rgba(16,185,129,.30) !important;
+  --app-glow: 0 0 8px rgba(16,185,129,.08) !important;
 }
 
 /* Tema 4: Warm Ember (GRATUITO) */
+html[data-theme="warm-ember"],
+body[data-theme="warm-ember"],
 [data-theme="warm-ember"] {
-  --bg:#1a0e0a;
-  --surface:#2d1712;
-  --primary:#f97316;
-  --accent:#fb923c;
-  --text:#fed7aa;
-  --app-border: rgba(249,115,22,.30);
-  --app-glow: 0 0 10px rgba(249,115,22,.10);
+  --bg:#1a0e0a !important;
+  --surface:#2d1712 !important;
+  --primary:#f97316 !important;
+  --accent:#fb923c !important;
+  --text:#fed7aa !important;
+  --app-border: rgba(249,115,22,.30) !important;
+  --app-glow: 0 0 10px rgba(249,115,22,.10) !important;
 }
 
 /* Tema 5: Rose Twilight (GRATUITO) */
+html[data-theme="rose-twilight"],
+body[data-theme="rose-twilight"],
 [data-theme="rose-twilight"] {
-  --bg:#1a0a14;
-  --surface:#2d1220;
-  --primary:#ec4899;
-  --accent:#f472b6;
-  --text:#fce7f3;
-  --app-border: rgba(236,72,153,.32);
-  --app-glow: 0 0 8px rgba(236,72,153,.10);
+  --bg:#1a0a14 !important;
+  --surface:#2d1220 !important;
+  --primary:#ec4899 !important;
+  --accent:#f472b6 !important;
+  --text:#fce7f3 !important;
+  --app-border: rgba(236,72,153,.32) !important;
+  --app-glow: 0 0 8px rgba(236,72,153,.10) !important;
 }
 
 /* ============================================ */
@@ -157,81 +167,93 @@ code {
 /* ============================================ */
 
 /* Tema Premium: Aurora Borealis */
+html[data-theme="aurora-borealis"],
+body[data-theme="aurora-borealis"],
 [data-theme="aurora-borealis"] {
-  --bg:#0a0f1e;
-  --surface:#12182e;
-  --primary:#00d9ff;
-  --accent:#7c3aed;
-  --text:#e0f2fe;
-  --app-border: rgba(0,217,255,.40);
-  --app-glow: 0 0 16px rgba(0,217,255,.15);
-  --app-radius: 20px;
-  --aura-intensity: 1.5;
+  --bg:#0a0f1e !important;
+  --surface:#12182e !important;
+  --primary:#00d9ff !important;
+  --accent:#7c3aed !important;
+  --text:#e0f2fe !important;
+  --app-border: rgba(0,217,255,.40) !important;
+  --app-glow: 0 0 16px rgba(0,217,255,.15) !important;
+  --app-radius: 20px !important;
+  --aura-intensity: 1.5 !important;
 }
 
 /* Tema Premium: Golden Sunset */
+html[data-theme="golden-sunset"],
+body[data-theme="golden-sunset"],
 [data-theme="golden-sunset"] {
-  --bg:#1a1008;
-  --surface:#2d1e0f;
-  --primary:#fbbf24;
-  --accent:#f59e0b;
-  --text:#fef3c7;
-  --app-border: rgba(251,191,36,.45);
-  --app-glow: 0 0 18px rgba(251,191,36,.18);
-  --app-radius: 18px;
-  --aura-intensity: 1.4;
+  --bg:#1a1008 !important;
+  --surface:#2d1e0f !important;
+  --primary:#fbbf24 !important;
+  --accent:#f59e0b !important;
+  --text:#fef3c7 !important;
+  --app-border: rgba(251,191,36,.45) !important;
+  --app-glow: 0 0 18px rgba(251,191,36,.18) !important;
+  --app-radius: 18px !important;
+  --aura-intensity: 1.4 !important;
 }
 
 /* Tema Premium: Neon Matrix */
+html[data-theme="neon-matrix"],
+body[data-theme="neon-matrix"],
 [data-theme="neon-matrix"] {
-  --bg:#0a1a0f;
-  --surface:#0f2e1a;
-  --primary:#00ff88;
-  --accent:#00ffcc;
-  --text:#ccfff0;
-  --app-border: rgba(0,255,136,.42);
-  --app-glow: 0 0 20px rgba(0,255,136,.20);
-  --app-radius: 14px;
-  --aura-intensity: 1.6;
+  --bg:#0a1a0f !important;
+  --surface:#0f2e1a !important;
+  --primary:#00ff88 !important;
+  --accent:#00ffcc !important;
+  --text:#ccfff0 !important;
+  --app-border: rgba(0,255,136,.42) !important;
+  --app-glow: 0 0 20px rgba(0,255,136,.20) !important;
+  --app-radius: 14px !important;
+  --aura-intensity: 1.6 !important;
 }
 
 /* Tema Premium: Royal Purple */
+html[data-theme="royal-purple"],
+body[data-theme="royal-purple"],
 [data-theme="royal-purple"] {
-  --bg:#0f0a1a;
-  --surface:#1a1030;
-  --primary:#9333ea;
-  --accent:#a855f7;
-  --text:#ede9fe;
-  --app-border: rgba(147,51,234,.48);
-  --app-glow: 0 0 22px rgba(147,51,234,.22);
-  --app-radius: 22px;
-  --aura-intensity: 1.7;
+  --bg:#0f0a1a !important;
+  --surface:#1a1030 !important;
+  --primary:#9333ea !important;
+  --accent:#a855f7 !important;
+  --text:#ede9fe !important;
+  --app-border: rgba(147,51,234,.48) !important;
+  --app-glow: 0 0 22px rgba(147,51,234,.22) !important;
+  --app-radius: 22px !important;
+  --aura-intensity: 1.7 !important;
 }
 
 /* Tema Premium: Ice Crystal */
+html[data-theme="ice-crystal"],
+body[data-theme="ice-crystal"],
 [data-theme="ice-crystal"] {
-  --bg:#0a1220;
-  --surface:#0f1e2e;
-  --primary:#60a5fa;
-  --accent:#93c5fd;
-  --text:#dbeafe;
-  --app-border: rgba(96,165,250,.50);
-  --app-glow: 0 0 24px rgba(96,165,250,.24);
-  --app-radius: 24px;
-  --aura-intensity: 1.8;
+  --bg:#0a1220 !important;
+  --surface:#0f1e2e !important;
+  --primary:#60a5fa !important;
+  --accent:#93c5fd !important;
+  --text:#dbeafe !important;
+  --app-border: rgba(96,165,250,.50) !important;
+  --app-glow: 0 0 24px rgba(96,165,250,.24) !important;
+  --app-radius: 24px !important;
+  --aura-intensity: 1.8 !important;
 }
 
 /* Tema Premium: Crimson Night */
+html[data-theme="crimson-night"],
+body[data-theme="crimson-night"],
 [data-theme="crimson-night"] {
-  --bg:#1a0a0f;
-  --surface:#2d1218;
-  --primary:#dc2626;
-  --accent:#ef4444;
-  --text:#fee2e2;
-  --app-border: rgba(220,38,38,.45);
-  --app-glow: 0 0 20px rgba(220,38,38,.20);
-  --app-radius: 18px;
-  --aura-intensity: 1.5;
+  --bg:#1a0a0f !important;
+  --surface:#2d1218 !important;
+  --primary:#dc2626 !important;
+  --accent:#ef4444 !important;
+  --text:#fee2e2 !important;
+  --app-border: rgba(220,38,38,.45) !important;
+  --app-glow: 0 0 20px rgba(220,38,38,.20) !important;
+  --app-radius: 18px !important;
+  --aura-intensity: 1.5 !important;
 }
 
 /* ============================================ */
@@ -251,9 +273,57 @@ code {
 body{
   background:
     radial-gradient(1000px circle at 20% -10%, var(--surface), transparent 60%),
-    linear-gradient(180deg, var(--bg), color-mix(in oklab, var(--bg) 80%, black));
-  color: var(--text);
+    linear-gradient(180deg, var(--bg), color-mix(in oklab, var(--bg) 80%, black)) !important;
+  color: var(--text) !important;
   transition: background 0.5s ease, color 0.3s ease;
+}
+
+/* Garante que elementos com bg/text usam as variáveis do tema */
+html[data-theme] body,
+body[data-theme] {
+  background:
+    radial-gradient(1000px circle at 20% -10%, var(--surface), transparent 60%),
+    linear-gradient(180deg, var(--bg), color-mix(in oklab, var(--bg) 80%, black)) !important;
+  color: var(--text) !important;
+}
+
+/* CRITICAL FIX: Sobrescreve classes Tailwind hardcoded com variáveis do tema */
+html[data-theme] *[class*="bg-slate-900"],
+html[data-theme] *[class*="bg-gray-900"],
+body[data-theme] *[class*="bg-slate-900"],
+body[data-theme] *[class*="bg-gray-900"] {
+  background-color: var(--bg) !important;
+}
+
+html[data-theme] *[class*="bg-slate-800"],
+html[data-theme] *[class*="bg-gray-800"],
+body[data-theme] *[class*="bg-slate-800"],
+body[data-theme] *[class*="bg-gray-800"] {
+  background-color: var(--surface) !important;
+}
+
+html[data-theme] *[class*="text-cyan"],
+html[data-theme] *[class*="from-cyan"],
+html[data-theme] *[class*="to-cyan"],
+html[data-theme] *[class*="border-cyan"],
+body[data-theme] *[class*="text-cyan"],
+body[data-theme] *[class*="from-cyan"],
+body[data-theme] *[class*="to-cyan"],
+body[data-theme] *[class*="border-cyan"] {
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+html[data-theme] *[class*="bg-cyan"],
+body[data-theme] *[class*="bg-cyan"] {
+  background-color: var(--primary) !important;
+}
+
+/* Sobrescreve gradientes com cores primárias */
+html[data-theme] *[class*="bg-gradient-to"],
+body[data-theme] *[class*="bg-gradient-to"] {
+  --tw-gradient-from: var(--primary) !important;
+  --tw-gradient-to: var(--accent) !important;
 }
 
 /* Animação auraPulse com intensidade variável */
