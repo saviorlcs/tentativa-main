@@ -73,7 +73,7 @@ code {
     }
 }
 :root{
-  /* tema (já existia na minha msg anterior) */
+  /* tema (cores padrão) */
   --bg:#0b1220;
   --surface:#0f172a;
   --primary:#06b6d4;
@@ -85,6 +85,114 @@ code {
   --app-border-w: 1px;
   --app-border: rgba(148,163,184,.35);
   --app-glow: 0 0 0 rgba(0,0,0,0);
+}
+
+/* ============================================ */
+/*   SOBRESCREVER CORES DO TAILWIND COM TEMAS */
+/* ============================================ */
+
+/* Forçar uso das variáveis CSS em vez de cores hardcoded */
+/* Isso faz os temas mudarem TODO o site! */
+
+/* Backgrounds principais usando --bg e --surface */
+.bg-slate-900,
+.bg-gray-900,
+[class*="bg-slate-900"] {
+  background-color: var(--bg) !important;
+}
+
+.bg-slate-800,
+[class*="bg-slate-800"] {
+  background-color: var(--surface) !important;
+}
+
+.bg-slate-700,
+[class*="bg-slate-700"] {
+  background-color: color-mix(in srgb, var(--surface) 85%, white) !important;
+}
+
+/* Cores de texto e ícones usando --primary */
+.text-cyan-400,
+.text-cyan-500,
+[class*="text-cyan"] {
+  color: var(--primary) !important;
+}
+
+/* Cores de destaque usando --accent */
+.text-purple-400,
+.text-purple-500,
+.text-blue-400,
+.text-blue-500,
+[class*="text-purple"],
+[class*="text-blue"] {
+  color: var(--accent) !important;
+}
+
+/* Bordas usando --primary */
+.border-cyan-400,
+.border-cyan-500,
+[class*="border-cyan"] {
+  border-color: var(--primary) !important;
+}
+
+.border-slate-700,
+.border-slate-600,
+[class*="border-slate"] {
+  border-color: color-mix(in srgb, var(--surface) 70%, white 30%) !important;
+}
+
+/* Backgrounds de botões e elementos interativos */
+.bg-cyan-500,
+.bg-cyan-600,
+[class*="bg-cyan"] {
+  background-color: var(--primary) !important;
+}
+
+.bg-purple-500,
+.bg-purple-600,
+[class*="bg-purple"] {
+  background-color: var(--accent) !important;
+}
+
+/* Hover states */
+.hover\:bg-cyan-600:hover,
+.hover\:bg-cyan-500:hover {
+  background-color: color-mix(in srgb, var(--primary) 85%, black) !important;
+}
+
+.hover\:text-cyan-400:hover,
+.hover\:text-cyan-300:hover {
+  color: color-mix(in srgb, var(--primary) 90%, white) !important;
+}
+
+/* Shadows e glows usando --primary */
+[class*="shadow-cyan"] {
+  --tw-shadow-color: var(--primary) !important;
+  --tw-shadow: var(--tw-shadow-colored) !important;
+}
+
+/* Gradientes usando --primary e --accent */
+.from-cyan-500,
+.from-cyan-400,
+[class*="from-cyan"] {
+  --tw-gradient-from: var(--primary) !important;
+  --tw-gradient-to: transparent !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.to-blue-500,
+.to-blue-600,
+.to-purple-600,
+[class*="to-blue"],
+[class*="to-purple"] {
+  --tw-gradient-to: var(--accent) !important;
+}
+
+/* Text color padrão */
+.text-white,
+.text-gray-100,
+.text-gray-200 {
+  color: var(--text) !important;
 }
 
 /* superfícies que respeitam o “preset” de borda */
@@ -111,29 +219,78 @@ body{
   min-height: 100vh;
 }
 
+/* ========================================== */
+/*   CLASSES UTILITÁRIAS PARA TEMAS         */
+/* ========================================== */
+
+/* Cores de texto usando variáveis do tema */
+.text-primary-themed {
+  color: var(--primary) !important;
+}
+
+.text-accent-themed {
+  color: var(--accent) !important;
+}
+
+.text-themed {
+  color: var(--text) !important;
+}
+
+/* Cores de fundo usando variáveis do tema */
+.bg-primary-themed {
+  background-color: var(--primary) !important;
+}
+
+.bg-accent-themed {
+  background-color: var(--accent) !important;
+}
+
+.bg-surface-themed {
+  background-color: var(--surface) !important;
+}
+
+.bg-themed {
+  background-color: var(--bg) !important;
+}
+
+/* Bordas usando variáveis do tema */
+.border-primary-themed {
+  border-color: var(--primary) !important;
+}
+
+.border-accent-themed {
+  border-color: var(--accent) !important;
+}
+
 /* Gradientes usando cores do tema */
 .gradient-primary {
   background: linear-gradient(135deg, var(--primary), var(--accent));
 }
 
-.text-primary-themed {
-  color: var(--primary);
+.gradient-primary-to-accent {
+  background: linear-gradient(to right, var(--primary), var(--accent));
 }
 
-.text-accent-themed {
-  color: var(--accent);
+.gradient-accent-to-primary {
+  background: linear-gradient(to right, var(--accent), var(--primary));
 }
 
-.bg-primary-themed {
-  background-color: var(--primary);
+/* Efeitos de hover */
+.hover-bg-primary-themed:hover {
+  background-color: var(--primary) !important;
 }
 
-.bg-accent-themed {
-  background-color: var(--accent);
+.hover-text-primary-themed:hover {
+  color: var(--primary) !important;
 }
 
-.border-primary-themed {
-  border-color: var(--primary);
+/* Box-shadow com cores do tema */
+.shadow-primary-themed {
+  box-shadow: 0 4px 6px -1px var(--primary), 0 2px 4px -1px var(--primary);
+}
+
+.shadow-accent-themed {
+  box-shadow: 0 4px 6px -1px var(--accent), 0 2px 4px -1px var(--accent);
 }
 @keyframes auraPulse {
   0%   { box-shadow: 0 0 16px rgba(56,189,248,.12); }

@@ -23,8 +23,8 @@ import { useApp } from "@/context/AppContext.jsx";
 import * as siteStyle from "../lib/siteStyle";
 import { setCycleState } from "../lib/siteStyle";
 import Footer from '../components/Footer';
-// Mostrar só a seção de Selos (desliga bordas/temas)
-const VISIBLE_TYPES = ["seal"]; // opções possíveis: "seal", "border", "theme"
+// Mostrar apenas selos e temas (bordas ocultas)
+const VISIBLE_TYPES = ["seal", "theme"];
 
 
 /* CSS inline para animações */
@@ -407,11 +407,16 @@ function restoreEquipped(equippedIds) {
 
         <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6">
           <Tabs defaultValue="seal" className="w-full">
-            <TabsList className="bg-slate-700 mb-6 grid w-full max-w-md grid-cols-1">
+            <TabsList className="bg-slate-700 mb-6 grid w-full max-w-md grid-cols-2">
   {VISIBLE_TYPES.includes("seal") && (
     <TabsTrigger value="seal" className="data-[state=active]:bg-cyan-500">Selos</TabsTrigger>
   )}
-  {/* Bordas e Temas ficam ocultos enquanto não estiverem em VISIBLE_TYPES */}
+  {VISIBLE_TYPES.includes("border") && (
+    <TabsTrigger value="border" className="data-[state=active]:bg-purple-500">Bordas</TabsTrigger>
+  )}
+  {VISIBLE_TYPES.includes("theme") && (
+    <TabsTrigger value="theme" className="data-[state=active]:bg-pink-500">Temas</TabsTrigger>
+  )}
 </TabsList>
 
 

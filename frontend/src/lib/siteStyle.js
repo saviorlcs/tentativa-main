@@ -9,6 +9,7 @@ function injectStylesOnce() {
   const css = `
 /* ============================================ */
 /*          AVATAR/SELO EFFECTS                */
+/*          VERSÃO LEVE - APENAS SUTIS         */
 /* ============================================ */
 
 .seal-avatar { 
@@ -16,7 +17,7 @@ function injectStylesOnce() {
   position: relative;
 }
 
-/* ÓRBITAS (Rare+) */
+/* ÓRBITAS (Rare+) - SIMPLIFICADAS */
 .seal-avatar[data-orbit="slow"]::after,
 .seal-avatar[data-orbit="medium"]::after,
 .seal-avatar[data-orbit="fast"]::after {
@@ -24,96 +25,18 @@ function injectStylesOnce() {
   position: absolute; 
   inset: -8px;
   border-radius: 50%;
-  border: 2px dashed rgba(255,255,255,.3);
-  animation: orbit 16s linear infinite;
+  border: 2px dashed rgba(255,255,255,.2);
   pointer-events: none;
-}
-.seal-avatar[data-orbit="medium"]::after { 
-  animation-duration: 10s; 
-  border-width: 2.5px;
-  border-color: rgba(255,255,255,.4);
-}
-.seal-avatar[data-orbit="fast"]::after { 
-  animation-duration: 6s;
-  border-width: 3px;
-  border-color: rgba(255,255,255,.5);
-  box-shadow: 0 0 10px rgba(255,255,255,.3);
-}
-@keyframes orbit { 
-  to { transform: rotate(360deg); } 
+  opacity: 0.5;
 }
 
-/* PARTÍCULAS (Rare+) */
-.seal-avatar[data-particles="sparks"]::before {
-  content: "";
-  position: absolute;
-  inset: -12%;
-  background: 
-    radial-gradient(circle, rgba(255,255,255,.7) 0 1.5px, transparent 2px) 0 0/18% 18%,
-    radial-gradient(circle, rgba(255,200,100,.6) 0 1px, transparent 1.5px) 5% 5%/15% 15%;
-  opacity: .5;
-  filter: blur(0.3px);
-  animation: drift-sparks 10s linear infinite;
-  pointer-events: none;
-}
+/* PARTÍCULAS - REMOVIDAS (muito pesadas) */
 
-.seal-avatar[data-particles="stardust"]::before {
-  content: "";
-  position: absolute;
-  inset: -15%;
-  background:
-    radial-gradient(circle, rgba(255,255,255,.9) 0 2px, transparent 3px) 0 0/12% 12%,
-    radial-gradient(circle, rgba(200,220,255,.7) 0 1.5px, transparent 2.5px) 3% 3%/10% 10%,
-    radial-gradient(circle, rgba(255,255,200,.6) 0 1px, transparent 2px) 7% 7%/15% 15%;
-  opacity: .7;
-  filter: blur(0.4px);
-  animation: drift-stardust 12s linear infinite;
-  pointer-events: none;
-}
-
-.seal-avatar[data-particles="galaxy"]::before {
-  content: "";
-  position: absolute;
-  inset: -20%;
-  background:
-    radial-gradient(circle, rgba(255,255,255,.95) 0 2.5px, transparent 3.5px) 0 0/8% 8%,
-    radial-gradient(circle, rgba(150,200,255,.8) 0 2px, transparent 3px) 2% 2%/10% 10%,
-    radial-gradient(circle, rgba(255,200,255,.7) 0 1.5px, transparent 2.5px) 5% 5%/12% 12%,
-    radial-gradient(circle, rgba(255,255,150,.6) 0 1px, transparent 2px) 8% 8%/15% 15%;
-  opacity: .85;
-  filter: blur(0.5px);
-  animation: drift-galaxy 8s linear infinite, twinkle 3s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes drift-sparks { 
-  to { transform: translate3d(6%, -6%, 0); } 
-}
-@keyframes drift-stardust { 
-  to { transform: translate3d(8%, -8%, 0) rotate(5deg); } 
-}
-@keyframes drift-galaxy { 
-  to { transform: translate3d(10%, -10%, 0) rotate(10deg); } 
-}
-@keyframes twinkle {
-  0%, 100% { opacity: .85; }
-  50% { opacity: .95; }
-}
-
-/* TRAILS (Epic+) */
-.seal-trail {
-  position: absolute;
-  pointer-events: none;
-  animation: trail-flow 1.8s ease-in-out infinite;
-}
-@keyframes trail-flow {
-  0% { opacity: 0; transform: translate(-12px, -50%); }
-  40% { opacity: 1; }
-  100% { opacity: 0; transform: translate(10px, -50%); }
-}
+/* TRAILS - REMOVIDOS (muito pesados) */
 
 /* ============================================ */
 /*          BORDER EFFECTS (GLOBAL)            */
+/*          VERSÃO LEVE - APENAS SUTIS         */
 /* ============================================ */
 
 :root { 
@@ -121,116 +44,41 @@ function injectStylesOnce() {
   --border-glow-color: rgba(59, 130, 246, 0.5);
 }
 
-/* Bordas Animadas - RAINBOW (Rare) */
-html[data-border-anim="rainbow"] .app-surface,
-html[data-border-anim="pulse-rainbow"] .app-surface,
-html[data-border-anim="prismatic"] .app-surface {
+/* Bordas Animadas - RAINBOW (Rare) - SIMPLIFICADO */
+html[data-border-anim="rainbow"] .app-surface {
   position: relative;
+  border: 2px solid;
+  border-image: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) 1;
+  transition: border 0.5s ease;
 }
 
-html[data-border-anim="rainbow"] .app-surface::before {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  background: conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
-  z-index: -1;
-  filter: blur(1px);
-  animation: spin-rainbow 12s linear infinite;
-  opacity: 0.7;
+/* Pulse Rainbow (Epic) - MUITO SIMPLIFICADO */
+html[data-border-anim="pulse-rainbow"] .app-surface {
+  position: relative;
+  border: 2px solid;
+  border-image: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) 1;
+  animation: pulse-border-simple 3s ease-in-out infinite;
 }
 
-/* Pulse Rainbow (Epic) */
-html[data-border-anim="pulse-rainbow"] .app-surface::before {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: inherit;
-  background: conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
-  z-index: -1;
-  filter: blur(2px);
-  animation: spin-rainbow 10s linear infinite, pulse-border 2s ease-in-out infinite;
-  opacity: 0.8;
-}
-
-/* Prismatic (Legendary) */
-html[data-border-anim="prismatic"] .app-surface::before {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: inherit;
-  background: 
-    conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00),
-    conic-gradient(from 90deg, transparent 40%, rgba(255,255,255,.3) 50%, transparent 60%);
-  z-index: -1;
-  filter: blur(3px);
-  animation: spin-rainbow 8s linear infinite, pulse-border 1.5s ease-in-out infinite, shimmer-border 3s ease-in-out infinite;
-  opacity: 0.9;
-  box-shadow: 0 0 20px rgba(255,255,255,.4);
-}
-
-/* Camada interna da borda (Epic+) */
-html[data-border-anim="pulse-rainbow"] .app-surface::after,
-html[data-border-anim="prismatic"] .app-surface::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(45deg, rgba(255,255,255,.2), rgba(255,255,255,.05));
-  z-index: -1;
-  pointer-events: none;
-}
-
-@keyframes spin-rainbow { 
-  to { transform: rotate(360deg); } 
-}
-
-@keyframes pulse-border {
-  0%, 100% { filter: blur(2px) brightness(1); }
-  50% { filter: blur(3px) brightness(1.2); }
-}
-
-@keyframes shimmer-border {
-  0%, 100% { opacity: 0.9; }
+@keyframes pulse-border-simple {
+  0%, 100% { opacity: 0.8; }
   50% { opacity: 1; }
 }
 
-/* Hover Effects para bordas (Epic+) */
-html[data-border-anim="pulse-rainbow"] .app-surface:hover,
-html[data-border-anim="prismatic"] .app-surface:hover {
-  transform: scale(1.02);
-  transition: transform 0.3s ease;
-}
-
-html[data-border-anim="prismatic"] .app-surface:hover {
-  transform: scale(1.03) rotate(0.5deg);
-  transition: transform 0.3s ease, filter 0.3s ease;
-  filter: brightness(1.05);
-}
-
-/* Corner Sparkles (Legendary) */
+/* Prismatic (Legendary) - SIMPLIFICADO AO MÁXIMO */
 html[data-border-anim="prismatic"] .app-surface {
   position: relative;
-  overflow: visible;
+  border: 2px solid;
+  border-image: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) 1;
+  animation: pulse-border-simple 2s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(255,255,255,.2);
 }
 
-html[data-border-anim="prismatic"] .app-surface::after {
-  content: "✨";
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: 12px;
-  animation: sparkle-corner 2s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes sparkle-corner {
-  0%, 100% { opacity: 0.6; transform: scale(0.8) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
-}
+/* REMOVIDAS: Camadas ::before e ::after pesadas, rotações, sparkles */
 
 /* ============================================ */
 /*          THEME EFFECTS (BACKGROUNDS)        */
+/*          VERSÃO LEVE - SEM SOBRECARREGAR    */
 /* ============================================ */
 
 :root {
@@ -239,7 +87,7 @@ html[data-border-anim="prismatic"] .app-surface::after {
   --theme-transition: 0.5s ease;
 }
 
-/* Backgrounds por tipo */
+/* Backgrounds por tipo - VERSÃO SIMPLIFICADA */
 
 /* Solid (Common) - background padrão */
 html[data-theme-mode="solid"] {
@@ -247,89 +95,35 @@ html[data-theme-mode="solid"] {
   transition: background var(--theme-transition);
 }
 
-/* Gradient Animated (Rare) */
+/* Gradient Animated (Rare) - SIMPLIFICADO */
 html[data-theme-mode="gradient-animated"] {
   background: linear-gradient(135deg, var(--accent-1), color-mix(in srgb, var(--accent-0) 20%, var(--accent-1)));
-  animation: gradient-shift 10s ease infinite;
+  transition: background var(--theme-transition);
 }
 
-@keyframes gradient-shift {
-  0%, 100% { filter: hue-rotate(0deg) brightness(1); }
-  50% { filter: hue-rotate(10deg) brightness(1.05); }
-}
-
-/* Cycle Reactive (Epic) - Reage a focus/break */
+/* Cycle Reactive (Epic) - Reage a focus/break - SIMPLIFICADO */
 html[data-theme-mode="cycle-reactive"] {
-  background: 
-    radial-gradient(60% 100% at 50% 0%, color-mix(in srgb, var(--accent-0) 30%, transparent) 0%, transparent 60%),
-    linear-gradient(180deg, color-mix(in srgb, var(--accent-1) 40%, #000) 0%, #000 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-1) 40%, #000) 0%, #000 100%);
   transition: filter var(--theme-transition);
 }
 
 html[data-theme-mode="cycle-reactive"][data-cycle="focus"] {
-  filter: saturate(1.15) brightness(1.05) contrast(1.02);
+  filter: saturate(1.10) brightness(1.02);
 }
 
 html[data-theme-mode="cycle-reactive"][data-cycle="break"] {
-  filter: saturate(0.85) brightness(0.95) sepia(0.1);
+  filter: saturate(0.90) brightness(0.98);
 }
 
-/* Cosmic Parallax (Legendary) */
+/* Cosmic Parallax (Legendary) - MUITO SIMPLIFICADO */
 html[data-theme-mode="cosmic-parallax"] {
   background: 
-    radial-gradient(ellipse at 20% 30%, color-mix(in srgb, var(--accent-0) 15%, transparent) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, color-mix(in srgb, var(--accent-0) 20%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--accent-0) 15%, transparent) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent-1) 60%, #000) 0%, #000 100%);
-  animation: cosmic-drift 30s ease-in-out infinite;
-  position: relative;
+  transition: background var(--theme-transition);
 }
 
-@keyframes cosmic-drift {
-  0%, 100% { 
-    background-position: 0% 0%, 100% 100%, 50% 50%;
-  }
-  50% { 
-    background-position: 10% 5%, 90% 95%, 50% 50%;
-  }
-}
-
-/* Nebula overlay para legendary */
-html[data-theme-mode="cosmic-parallax"]::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: 
-    radial-gradient(circle at 30% 40%, rgba(138, 43, 226, 0.1) 0%, transparent 40%),
-    radial-gradient(circle at 70% 60%, rgba(30, 144, 255, 0.08) 0%, transparent 40%);
-  pointer-events: none;
-  z-index: 0;
-  animation: nebula-flow 20s ease-in-out infinite;
-}
-
-@keyframes nebula-flow {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.05); }
-}
-
-/* Starfield para legendary */
-html[data-theme-mode="cosmic-parallax"]::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-image:
-    radial-gradient(circle, rgba(255,255,255,.8) 0 1px, transparent 1px),
-    radial-gradient(circle, rgba(255,255,255,.6) 0 0.5px, transparent 1px);
-  background-size: 50px 50px, 30px 30px;
-  background-position: 0 0, 25px 25px;
-  opacity: 0.3;
-  pointer-events: none;
-  z-index: 0;
-  animation: starfield-drift 60s linear infinite;
-}
-
-@keyframes starfield-drift {
-  to { background-position: 50px 50px, 75px 75px; }
-}
+/* REMOVIDAS: Animações pesadas, nebula overlay, starfield */
 
 /* ============================================ */
 /*          CELEBRATION EFFECTS                */
@@ -462,6 +256,7 @@ export function bootApply({ themeId, borderId, themeEffects, borderEffects } = {
 
 /**
  * Aplica os efeitos de um "tema" equipado.
+ * IMPORTANTE: Temas mudam TODAS as cores do site!
  */
 export function applyThemeEffects(effects) {
   injectStylesOnce();
@@ -470,44 +265,62 @@ export function applyThemeEffects(effects) {
   console.log('[siteStyle] applyThemeEffects chamado:', effects);
   
   if (!effects) {
-    console.log('[siteStyle] Sem efeitos de tema, removendo atributos');
+    console.log('[siteStyle] Sem efeitos de tema, restaurando cores padrão');
     root.removeAttribute('data-theme-mode');
     root.removeAttribute('data-celebrate');
-    root.style.removeProperty('--accent-0');
-    root.style.removeProperty('--accent-1');
+    
+    // Restaura cores padrão
+    root.style.setProperty('--primary', '#06b6d4');
+    root.style.setProperty('--accent', '#8b5cf6');
+    root.style.setProperty('--bg', '#0b1220');
+    root.style.setProperty('--surface', '#0f172a');
+    root.style.setProperty('--text', '#e5e7eb');
+    root.style.setProperty('--accent-0', '#00b4d8');
+    root.style.setProperty('--accent-1', '#111827');
     return;
   }
 
-  // Paleta → CSS vars
-  if (Array.isArray(effects.palette) && effects.palette.length) {
+  // ===== APLICAR CORES DO TEMA EM TODAS AS VARIÁVEIS CSS =====
+  if (effects.base_color && effects.accent_color) {
+    console.log('[siteStyle] Aplicando TODAS as cores do tema ao site:', effects.base_color, effects.accent_color);
+    
+    // Cores principais que são usadas em todo o site
+    root.style.setProperty('--primary', effects.base_color);
+    root.style.setProperty('--accent', effects.accent_color);
+    
+    // Backgrounds - tons mais escuros derivados das cores principais
+    root.style.setProperty('--bg', effects.base_color);
+    root.style.setProperty('--surface', effects.accent_color);
+    root.style.setProperty('--text', '#e5e7eb'); // Mantém texto sempre legível
+    
+    // Para efeitos de tema avançados
+    root.style.setProperty('--accent-0', effects.base_color);
+    root.style.setProperty('--accent-1', effects.accent_color);
+    
+    console.log('[siteStyle] ✓ Cores aplicadas - o site inteiro deve mudar de cor agora!');
+  }
+
+  // Paleta → CSS vars (fallback se não tiver base_color/accent_color)
+  else if (Array.isArray(effects.palette) && effects.palette.length) {
     console.log('[siteStyle] Aplicando paleta:', effects.palette);
-    root.style.setProperty('--accent-0', effects.palette[0]);
-    root.style.setProperty('--accent-1', effects.palette[1] || effects.palette[0]);
+    const color0 = effects.palette[0];
+    const color1 = effects.palette[1] || effects.palette[0];
+    
+    root.style.setProperty('--primary', color0);
+    root.style.setProperty('--accent', color1);
+    root.style.setProperty('--bg', color1);
+    root.style.setProperty('--surface', color0);
+    root.style.setProperty('--accent-0', color0);
+    root.style.setProperty('--accent-1', color1);
+    
+    console.log('[siteStyle] ✓ Paleta aplicada - o site inteiro deve mudar de cor agora!');
   }
 
-  // Modo de fundo
-  // aceita sinônimos do backend
-  const modeMap = {
-    parallax: 'cosmic-parallax',
-    'cosmic-parallax': 'cosmic-parallax',
-    'cycle-reactive': 'cycle-reactive',
-    'gradient-animated': 'gradient-animated',
-    solid: 'solid',
-  };
-  if (effects.bg) {
-    const mode = modeMap[effects.bg] ?? effects.bg;
-    console.log('[siteStyle] Aplicando modo de tema:', mode);
-    root.setAttribute('data-theme-mode', mode);
-  } else {
-    root.removeAttribute('data-theme-mode');
-  }
+  // Modo de fundo (apenas solid para performance)
+  root.setAttribute('data-theme-mode', 'solid');
 
-  // Flags opcionais
-  if (effects.celebrate_milestones) {
-    root.setAttribute('data-celebrate', 'on');
-  } else {
-    root.removeAttribute('data-celebrate');
-  }
+  // Flags opcionais removidas
+  root.removeAttribute('data-celebrate');
 }
 
 /**
