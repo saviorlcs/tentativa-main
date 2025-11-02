@@ -36,94 +36,61 @@ function injectStylesOnce() {
 
 /* ============================================ */
 /*          BORDER EFFECTS (GLOBAL)            */
-/*          VERSÃO LEVE - APENAS SUTIS         */
+/*      MANTÉM: rainbow, pulse, prismatic      */
+/*      REMOVE: glows intensos, rotações       */
 /* ============================================ */
 
 :root { 
   --border-thickness: 2px; 
-  --border-glow-color: rgba(59, 130, 246, 0.5);
+  --border-glow-color: rgba(59, 130, 246, 0.3);
 }
 
-/* Bordas Animadas - RAINBOW (Rare) - SIMPLIFICADO */
+/* Bordas Animadas - RAINBOW (Rare) */
 html[data-border-anim="rainbow"] .app-surface {
   position: relative;
-  border: 2px solid;
-  border-image: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) 1;
-  transition: border 0.5s ease;
+  border: 2px solid transparent;
+  background: 
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) border-box;
+  transition: all 0.3s ease;
 }
 
-/* Pulse Rainbow (Epic) - MUITO SIMPLIFICADO */
+/* Pulse Rainbow (Epic) */
 html[data-border-anim="pulse-rainbow"] .app-surface {
   position: relative;
-  border: 2px solid;
-  border-image: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) 1;
-  animation: pulse-border-simple 3s ease-in-out infinite;
+  border: 2px solid transparent;
+  background: 
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) border-box;
+  animation: pulse-border-subtle 3s ease-in-out infinite;
 }
 
-@keyframes pulse-border-simple {
-  0%, 100% { opacity: 0.8; }
+@keyframes pulse-border-subtle {
+  0%, 100% { opacity: 0.7; }
   50% { opacity: 1; }
 }
 
-/* Prismatic (Legendary) - SIMPLIFICADO AO MÁXIMO */
+/* Prismatic (Legendary) */
 html[data-border-anim="prismatic"] .app-surface {
   position: relative;
-  border: 2px solid;
-  border-image: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) 1;
-  animation: pulse-border-simple 2s ease-in-out infinite;
-  box-shadow: 0 0 10px rgba(255,255,255,.2);
-}
-
-/* REMOVIDAS: Camadas ::before e ::after pesadas, rotações, sparkles */
-
-/* ============================================ */
-/*          THEME EFFECTS (BACKGROUNDS)        */
-/*          VERSÃO LEVE - SEM SOBRECARREGAR    */
-/* ============================================ */
-
-:root {
-  --accent-0: #00b4d8;
-  --accent-1: #111827;
-  --theme-transition: 0.5s ease;
-}
-
-/* Backgrounds por tipo - VERSÃO SIMPLIFICADA */
-
-/* Solid (Common) - background padrão */
-html[data-theme-mode="solid"] {
-  background: var(--accent-1);
-  transition: background var(--theme-transition);
-}
-
-/* Gradient Animated (Rare) - SIMPLIFICADO */
-html[data-theme-mode="gradient-animated"] {
-  background: linear-gradient(135deg, var(--accent-1), color-mix(in srgb, var(--accent-0) 20%, var(--accent-1)));
-  transition: background var(--theme-transition);
-}
-
-/* Cycle Reactive (Epic) - Reage a focus/break - SIMPLIFICADO */
-html[data-theme-mode="cycle-reactive"] {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-1) 40%, #000) 0%, #000 100%);
-  transition: filter var(--theme-transition);
-}
-
-html[data-theme-mode="cycle-reactive"][data-cycle="focus"] {
-  filter: saturate(1.10) brightness(1.02);
-}
-
-html[data-theme-mode="cycle-reactive"][data-cycle="break"] {
-  filter: saturate(0.90) brightness(0.98);
-}
-
-/* Cosmic Parallax (Legendary) - MUITO SIMPLIFICADO */
-html[data-theme-mode="cosmic-parallax"] {
+  border: 3px solid transparent;
   background: 
-    radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--accent-0) 15%, transparent) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent-1) 60%, #000) 0%, #000 100%);
-  transition: background var(--theme-transition);
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00) border-box;
+  animation: pulse-border-subtle 2s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(255,255,255,.15);
 }
 
-/* REMOVIDAS: Animações pesadas, nebula overlay, starfield */
+/* REMOVIDO: Sparkles, camadas ::before/::after excessivas, hover transforms */
+
+/* ============================================ */
+/*   THEME EFFECTS - REMOVIDO COMPLETAMENTE    */
+/*   Temas mudam APENAS --primary e --accent   */
+/*   SEM efeitos de background, glows, etc     */
+/* ============================================ */
+
+/* Todas as animações e efeitos de tema foram REMOVIDOS */
+/* Apenas as variáveis CSS --primary e --accent mudam */
 
 /* ============================================ */
 /*          CELEBRATION EFFECTS                */
@@ -184,6 +151,7 @@ html[data-celebrate="on"] .celebration-trigger {
 
 /* ============================================ */
 /*          UTILITY CLASSES                    */
+/*     REMOVIDOS: holographic, breathing       */
 /* ============================================ */
 
 .bordered { 
@@ -194,32 +162,7 @@ html[data-celebrate="on"] .celebration-trigger {
   transition: filter var(--theme-transition);
 }
 
-/* Breathing effect para temas (Rare+) */
-.breathing-effect {
-  animation: breathe 4s ease-in-out infinite;
-}
-
-@keyframes breathe {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.01); opacity: 0.95; }
-}
-
-/* Holographic UI (Legendary) */
-.holographic {
-  background: linear-gradient(135deg, 
-    rgba(255,255,255,.05) 0%, 
-    transparent 40%, 
-    rgba(255,255,255,.03) 50%, 
-    transparent 60%,
-    rgba(255,255,255,.05) 100%);
-  background-size: 200% 200%;
-  animation: holographic-shift 3s ease-in-out infinite;
-}
-
-@keyframes holographic-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
+/* Efeitos holográficos e breathing REMOVIDOS - muito pesados */
   `.trim();
 
   const el = document.createElement('style');
@@ -269,57 +212,40 @@ export function applyThemeEffects(effects) {
     root.removeAttribute('data-theme-mode');
     root.removeAttribute('data-celebrate');
     
-    // Restaura cores padrão
+    // Restaura APENAS as cores de destaque padrão
+    // NÃO toca em --bg, --surface ou --text
     root.style.setProperty('--primary', '#06b6d4');
     root.style.setProperty('--accent', '#8b5cf6');
-    root.style.setProperty('--bg', '#0b1220');
-    root.style.setProperty('--surface', '#0f172a');
-    root.style.setProperty('--text', '#e5e7eb');
-    root.style.setProperty('--accent-0', '#00b4d8');
-    root.style.setProperty('--accent-1', '#111827');
     return;
   }
 
-  // ===== APLICAR CORES DO TEMA EM TODAS AS VARIÁVEIS CSS =====
+  // ===== APENAS MUDA AS CORES - NADA MAIS =====
+  // Temas DEVEM mudar SOMENTE --primary e --accent
+  // NÃO muda --bg, --surface, nem adiciona glows/brilhos
   if (effects.base_color && effects.accent_color) {
-    console.log('[siteStyle] Aplicando TODAS as cores do tema ao site:', effects.base_color, effects.accent_color);
+    console.log('[siteStyle] Mudando APENAS cores de destaque:', effects.base_color, effects.accent_color);
     
-    // Cores principais que são usadas em todo o site
+    // Muda APENAS as cores de destaque usadas em textos, ícones e botões
     root.style.setProperty('--primary', effects.base_color);
     root.style.setProperty('--accent', effects.accent_color);
     
-    // Backgrounds - tons mais escuros derivados das cores principais
-    root.style.setProperty('--bg', effects.base_color);
-    root.style.setProperty('--surface', effects.accent_color);
-    root.style.setProperty('--text', '#e5e7eb'); // Mantém texto sempre legível
-    
-    // Para efeitos de tema avançados
-    root.style.setProperty('--accent-0', effects.base_color);
-    root.style.setProperty('--accent-1', effects.accent_color);
-    
-    console.log('[siteStyle] ✓ Cores aplicadas - o site inteiro deve mudar de cor agora!');
+    console.log('[siteStyle] ✓ Cores trocadas - cards permanecem iguais!');
   }
 
   // Paleta → CSS vars (fallback se não tiver base_color/accent_color)
   else if (Array.isArray(effects.palette) && effects.palette.length) {
-    console.log('[siteStyle] Aplicando paleta:', effects.palette);
+    console.log('[siteStyle] Mudando APENAS cores de destaque (paleta):', effects.palette);
     const color0 = effects.palette[0];
     const color1 = effects.palette[1] || effects.palette[0];
     
     root.style.setProperty('--primary', color0);
     root.style.setProperty('--accent', color1);
-    root.style.setProperty('--bg', color1);
-    root.style.setProperty('--surface', color0);
-    root.style.setProperty('--accent-0', color0);
-    root.style.setProperty('--accent-1', color1);
     
-    console.log('[siteStyle] ✓ Paleta aplicada - o site inteiro deve mudar de cor agora!');
+    console.log('[siteStyle] ✓ Paleta aplicada - cards permanecem iguais!');
   }
 
-  // Modo de fundo (apenas solid para performance)
-  root.setAttribute('data-theme-mode', 'solid');
-
-  // Flags opcionais removidas
+  // REMOVE qualquer modo de fundo especial
+  root.removeAttribute('data-theme-mode');
   root.removeAttribute('data-celebrate');
 }
 
