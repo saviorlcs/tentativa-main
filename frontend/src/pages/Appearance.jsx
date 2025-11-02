@@ -294,14 +294,30 @@ export default function Appearance() {
         {/* Aviso sobre tema equipado */}
         {equippedTheme && (
           <Card className="bg-purple-900/30 border-purple-500/50 rounded-2xl p-4 mb-6">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-6 h-6 text-purple-400" />
-              <div>
-                <p className="text-purple-200 font-semibold">Tema Premium Equipado</p>
-                <p className="text-purple-300/70 text-sm">
-                  Você está usando um tema da loja. Para usar os temas gratuitos, desequipe o tema atual na Loja.
-                </p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-6 h-6 text-purple-400" />
+                <div>
+                  <p className="text-purple-200 font-semibold">Tema Premium Equipado</p>
+                  <p className="text-purple-300/70 text-sm">
+                    Você está usando um tema da loja. Para usar os temas gratuitos, desequipe o tema atual na Loja ou restaure o tema padrão.
+                  </p>
+                </div>
               </div>
+              <Button
+                onClick={() => {
+                  // Importa e chama a função de reset
+                  import('@/lib/siteStyle').then(({ restoreDefaultTheme }) => {
+                    restoreDefaultTheme();
+                    toast.success('Tema padrão restaurado!');
+                    // Atualiza o estado para refletir a mudança
+                    setEquippedTheme(null);
+                  });
+                }}
+                className="bg-slate-700 hover:bg-slate-600 text-white font-semibold px-4 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap"
+              >
+                Restaurar Padrão
+              </Button>
             </div>
           </Card>
         )}
