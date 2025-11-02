@@ -69,6 +69,7 @@ export default function Notifications({ user }) {
     habits: [],
     reviews: [],
     friendRequests: [],
+    recentStudySessions: [],
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -77,7 +78,8 @@ export default function Notifications({ user }) {
     notifications.events.length +
     notifications.habits.length +
     notifications.reviews.length +
-    notifications.friendRequests.length;
+    notifications.friendRequests.length +
+    notifications.recentStudySessions.length;
 
   useEffect(() => {
     if (isOpen && user?.id) {
@@ -114,11 +116,19 @@ export default function Notifications({ user }) {
       const friendsRes = await api.get('/friends/requests').catch(() => ({ data: [] }));
       const pendingRequests = friendsRes.data || [];
 
+      // 5. Sessões de estudo recentes (últimas 5 sessões completadas hoje)
+      const sessionsRes = await api.get('/study/recent-sessions').catch(() => ({ data: [] }));
+      const recentSessions = (sessionsRes.data || []).filter(s => {
+        const sessionDate = s.start_time?.slice(0, 10);
+        return sessionDate === today && s.completed && !s.skipped && (s.coins_earned > 0 || s.xp_earned > 0);
+      }).slice(0, 5);
+
       setNotifications({
         events: todayEvents,
         habits: todayHabits,
         reviews: todayReviews,
         friendRequests: pendingRequests,
+        recentStudySessions: recentSessions,
       });
     } catch (err) {
       console.error('[Notifications] Erro ao carregar:', err);
@@ -336,6 +346,43 @@ export default function Notifications({ user }) {
                                 >
                                   Recusar
                                 </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sessões de Estudo Recentes */}
+                    {notifications.recentStudySessions.length > 0 && (
+                      <div className="p-4">
+                        <div className="flex items-center gap-2 text-amber-400 font-semibold mb-3 text-sm">
+                          <CheckCircle2 className="w-4 h-4" />
+                          Blocos Completados Hoje ({notifications.recentStudySessions.length})
+                        </div>
+                        <div className="space-y-2">
+                          {notifications.recentStudySessions.map((session, idx) => (
+                            <div
+                              key={session.id || idx}
+                              className="bg-gradient-to-r from-amber-900/30 to-emerald-900/30 rounded-lg p-3 border border-amber-500/20 app-surface"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="text-white font-semibold text-sm">
+                                  {session.subject_name || 'Estudo'} • {session.duration || 0} min
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {formatTime(session.start_time)}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5 bg-amber-500/20 px-2.5 py-1 rounded-md border border-amber-500/30">
+                                  <span className="text-lg">💰</span>
+                                  <span className="text-amber-200 font-bold text-sm">+{session.coins_earned || 0}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 bg-blue-500/20 px-2.5 py-1 rounded-md border border-blue-500/30">
+                                  <span className="text-lg">⭐</span>
+                                  <span className="text-blue-200 font-bold text-sm">+{session.xp_earned || 0}</span>
+                                </div>
                               </div>
                             </div>
                           ))}

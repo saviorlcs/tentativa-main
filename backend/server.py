@@ -2672,6 +2672,50 @@ async def check_nickname_available(nickname: str, tag: str):
     
     return {"available": not bool(existing)}
 
+@api_router.get("/user/appearance")
+async def get_user_appearance(request: Request, session_token: Optional[str] = Cookie(None)):
+    """Retorna as preferências de aparência do usuário"""
+    user = await get_current_user(request, session_token)
+    
+    prefs = await db.user_appearance.find_one({"user_id": user.id}, {"_id": 0})
+    if not prefs:
+        return {"theme_mode": "auto", "color_scheme": "pomociclo-classic"}
+    
+    return {
+        "theme_mode": prefs.get("theme_mode", "auto"),
+        "color_scheme": prefs.get("color_scheme", "pomociclo-classic")
+    }
+
+@api_router.post("/user/appearance")
+async def save_user_appearance(
+    appearance: dict = Body(...),
+    request: Request = None,
+    session_token: Optional[str] = Cookie(None)
+):
+    """Salva as preferências de aparência do usuário"""
+    user = await get_current_user(request, session_token)
+    
+    theme_mode = appearance.get("theme_mode", "auto")
+    color_scheme = appearance.get("color_scheme", "pomociclo-classic")
+    
+    # Valida valores
+    if theme_mode not in ["light", "dark", "auto"]:
+        raise HTTPException(status_code=400, detail="Modo de tema inválido")
+    
+    await db.user_appearance.update_one(
+        {"user_id": user.id},
+        {
+            "$set": {
+                "theme_mode": theme_mode,
+                "color_scheme": color_scheme,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"success": True}
+
 # Subject Routes
 @api_router.get("/subjects", response_model=List[Subject])
 async def get_subjects(request: Request, session_token: Optional[str] = Cookie(None)):
@@ -2825,6 +2869,30 @@ async def start_study_session(input: StudySessionStart, request: Request, sessio
     return session
 
 
+
+@api_router.get("/study/recent-sessions")
+async def get_recent_study_sessions(request: Request, session_token: Optional[str] = Cookie(None)):
+    """Retorna as sessões de estudo recentes do usuário (últimas 10 completadas)"""
+    user = await get_current_user(request, session_token)
+    
+    # Busca as últimas 10 sessões completadas, ordenadas por data
+    sessions = await db.study_sessions.find(
+        {"user_id": user.id, "completed": True},
+        {"_id": 0}
+    ).sort("start_time", -1).limit(10).to_list(10)
+    
+    # Enriquece com o nome da matéria
+    for session in sessions:
+        if session.get("subject_id"):
+            subject = await db.subjects.find_one(
+                {"id": session["subject_id"], "user_id": user.id},
+                {"_id": 0, "name": 1}
+            )
+            session["subject_name"] = subject.get("name") if subject else "Matéria desconhecida"
+        else:
+            session["subject_name"] = "Sem matéria"
+    
+    return sessions
 
 @api_router.post("/study/end")
 async def end_study_session(input: StudySessionEnd, request: Request, session_token: Optional[str] = Cookie(None)):

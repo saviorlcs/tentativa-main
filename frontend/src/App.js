@@ -32,6 +32,7 @@ import TermosDeUso from "./pages/TermosDeUso";
 import Privacidade from "./pages/Privacidade";
 import TecnicaPomodoro from "./pages/TecnicaPomodoro";
 import Comunidade from "./pages/Comunidade";
+import Appearance from "./pages/Appearance";
 /* ---------------- Ping simples ao /api (equivalente ao primeiro código) ---------------- */
 function HelloProbe() {
   useEffect(() => {
@@ -251,6 +252,7 @@ export default function App() {
             <Route path="/whatsapp" element={<Comunidade />} />
             <Route path="/discord" element={<Comunidade />} />
             <Route path="/instagram" element={<Comunidade />} />
+            <Route path="/aparencia" element={<Appearance />} />
           </Routes>
           <CookieConsent />
           

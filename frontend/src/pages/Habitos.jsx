@@ -139,14 +139,14 @@ function HabitHistory({ habit, onClose }) {
   const completionDates = new Set(habit.completions?.map((c) => c.date) || []);
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-purple-500/30 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto app-surface">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-purple-500/30 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto app-surface" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-white font-bold text-2xl flex items-center gap-2">
             <TrendingUp className="w-6 h-6 text-purple-400" />
             Histórico: {habit.name}
           </h2>
-          <Button size="sm" variant="ghost" onClick={onClose}>
+          <Button size="sm" variant="ghost" onClick={onClose} className="text-white hover:bg-slate-700">
             <X className="w-5 h-5" />
           </Button>
         </div>
