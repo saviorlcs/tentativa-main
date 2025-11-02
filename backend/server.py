@@ -289,7 +289,8 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000/")
 FRONTEND_URL_ALT = "http://localhost:3000/"
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8001")
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret")
-COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+# Detecta automaticamente se é HTTPS (produção) ou HTTP (desenvolvimento)
+IS_PRODUCTION = BACKEND_URL.startswith("https://")
 SESSION_TTL_DAYS = 30
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -620,73 +621,45 @@ GOOGLE_TOKEN = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO = "https://openidconnect.googleapis.com/v1/userinfo"
 
 
-def set_session_cookie(resp, token: str):
-    resp.set_cookie(
-        "session_token",
-        token,
-        max_age=60*60*24*30,
-        httponly=True,
-        secure=COOKIE_SECURE,              # em dev: false; em produção/HTTPS: true
-        samesite="none" if COOKIE_SECURE else "lax",
-        path="/",
-    )
+# ==================== FUNÇÕES DE COOKIE PADRONIZADAS ====================
+# IMPORTANTE: SameSite=None EXIGE Secure=True (HTTPS)
+# Em HTTP (dev), usamos SameSite=Lax + Secure=False
+# Em HTTPS (prod), usamos SameSite=None + Secure=True
 
 def make_cookie(response: RedirectResponse | JSONResponse, token: str):
-    # Em produção: Secure=True e SameSite=None (cross-site)
-    # Em dev: Secure=False e SameSite=Lax
-    is_production = BACKEND_URL.startswith("https://")
+    """
+    Seta cookies de sessão e CSRF de forma segura e consistente.
+    
+    - Em HTTPS (produção): Secure=True, SameSite=None (permite cross-site)
+    - Em HTTP (dev): Secure=False, SameSite=Lax (navegadores bloqueiam None sem Secure)
+    """
+    # Seta o cookie de sessão (HttpOnly para segurança)
     response.set_cookie(
         "session_token",
         token,
-        max_age=60*60*24*30,
-        httponly=True,      # melhor segurança; o axios envia o cookie via withCredentials
-        secure=is_production,       # True em HTTPS, False em HTTP
-        samesite="None" if is_production else "Lax",     # None em produção para cross-site
-        path="/",           # sem 'domain' no localhost
+        max_age=60*60*24*SESSION_TTL_DAYS,
+        httponly=True,
+        secure=IS_PRODUCTION,
+        samesite="None" if IS_PRODUCTION else "Lax",
+        path="/",
     )
     
-    # Também seta um CSRF token para chamadas subsequentes
+    # Seta o CSRF token (NÃO-HttpOnly para o frontend poder ler)
     csrf_token = secrets.token_urlsafe(32)
     response.set_cookie(
         "csrf_token",
         csrf_token,
-        max_age=60*60*24*30,
-        httponly=False,     # frontend precisa ler para enviar no header
-        secure=is_production,
-        samesite="None" if is_production else "Lax",
+        max_age=60*60*24*SESSION_TTL_DAYS,
+        httponly=False,
+        secure=IS_PRODUCTION,
+        samesite="None" if IS_PRODUCTION else "Lax",
         path="/",
     )
+
 from datetime import datetime, timezone
 
 def utcnow():
     return datetime.now(timezone.utc)
-
-def issue_session(user_id: str) -> dict:
-    return {
-        "id": secrets.token_urlsafe(32),             # session_token
-        "user_id": user_id,
-        "csrf_token": secrets.token_urlsafe(32),     # amarrado à sessão
-        "created_at": utcnow().isoformat(),
-        "expires_at": (utcnow() + timedelta(days=SESSION_TTL_DAYS)).isoformat(),
-    }
-
-async def persist_session(sess: dict):
-    await db.sessions.update_one({"id": sess["id"]}, {"$set": sess}, upsert=True)
-
-def set_session_cookies(resp: Response, sess: dict, *, prod: bool):
-    # Back-end público em HTTPS? -> prod=True
-    cookie_kwargs = dict(
-        httponly=True,
-        secure=prod,
-        samesite="None" if prod else "Lax",  # dev cross-origin usa None
-        max_age=SESSION_TTL_DAYS * 24 * 3600,
-        path="/",
-    )
-    # cookie HttpOnly com o token da sessão
-    resp.set_cookie("session_token", sess["id"], **cookie_kwargs)
-    # cookie NÃO-HttpOnly com o CSRF (para o front mandar no header)
-    resp.set_cookie("csrf_token", sess["csrf_token"], httponly=False, secure=prod,
-                    samesite=cookie_kwargs["samesite"], max_age=cookie_kwargs["max_age"], path="/")
 
 def now_utc():
     return datetime.now(timezone.utc)
@@ -965,11 +938,19 @@ async def logout(request: Request, session_token: Optional[str] = Cookie(None)):
     if session_token:
         await db.sessions.delete_one({"id": session_token})
     resp = JSONResponse({"ok": True})
-    # apaga cookies com os mesmos parâmetros usados ao criar
-    is_production = BACKEND_URL.startswith("https://")
-    resp.delete_cookie("session_token", path="/", httponly=True, secure=is_production, samesite="None" if is_production else "lax")
-    # csrf_token foi criado com httponly=False (linha 521-522), então deve ser deletado com httponly=False
-    resp.delete_cookie("csrf_token", path="/", httponly=False, secure=is_production, samesite="None" if is_production else "lax")
+    # Apaga cookies usando a mesma configuração de criação
+    resp.delete_cookie(
+        "session_token",
+        path="/",
+        secure=IS_PRODUCTION,
+        samesite="None" if IS_PRODUCTION else "Lax"
+    )
+    resp.delete_cookie(
+        "csrf_token",
+        path="/",
+        secure=IS_PRODUCTION,
+        samesite="None" if IS_PRODUCTION else "Lax"
+    )
     return resp
 
 @api_router.delete("/auth/me")
@@ -1005,9 +986,19 @@ async def delete_account(request: Request, session_token: Optional[str] = Cookie
         await db.sessions.delete_one({"id": session_token})
     
     resp = JSONResponse({"ok": True, "message": "Conta excluída com sucesso"})
-    is_production = BACKEND_URL.startswith("https://")
-    resp.delete_cookie("session_token", path="/", httponly=True, secure=is_production, samesite="None" if is_production else "lax")
-    resp.delete_cookie("csrf_token", path="/", httponly=False, secure=is_production, samesite="None" if is_production else "lax")
+    # Apaga cookies usando a mesma configuração de criação
+    resp.delete_cookie(
+        "session_token",
+        path="/",
+        secure=IS_PRODUCTION,
+        samesite="None" if IS_PRODUCTION else "Lax"
+    )
+    resp.delete_cookie(
+        "csrf_token",
+        path="/",
+        secure=IS_PRODUCTION,
+        samesite="None" if IS_PRODUCTION else "Lax"
+    )
     return resp
 
 
