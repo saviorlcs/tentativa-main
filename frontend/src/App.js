@@ -33,6 +33,7 @@ import Privacidade from "./pages/Privacidade";
 import TecnicaPomodoro from "./pages/TecnicaPomodoro";
 import Comunidade from "./pages/Comunidade";
 import Appearance from "./pages/Appearance";
+import { useThemeLoader } from "./hooks/useThemeLoader";
 /* ---------------- Ping simples ao /api (equivalente ao primeiro código) ---------------- */
 function HelloProbe() {
   useEffect(() => {
@@ -219,46 +220,81 @@ function AppTheming() {
           const prefs = prefsRes.data || {};
           const colorScheme = prefs.color_scheme || 'pomociclo-default';
           
-          // Esquemas de cores gratuitos (mesma lista de Appearance.jsx)
+          // Esquemas de cores gratuitos (sincronizado com Appearance.jsx)
           const FREE_SCHEMES = {
             'pomociclo-default': {
-              primary: '#06b6d4',
-              accent: '#8b5cf6',
-              bg: '#0b1220',
-              surface: '#0f172a',
-              text: '#e5e7eb'
+              primary: '#22d3ee',
+              accent: '#a78bfa',
+              bg: '#0f172a',
+              surface: '#1e293b',
+              text: '#f1f5f9'
             },
             'midnight-blue': {
-              primary: '#3b82f6',
-              accent: '#60a5fa',
-              bg: '#0a0e1a',
-              surface: '#0f1419',
-              text: '#e2e8f0'
+              primary: '#60a5fa',
+              accent: '#93c5fd',
+              bg: '#0c1a2e',
+              surface: '#1e3a5f',
+              text: '#f0f9ff'
             },
             'dark-slate': {
-              primary: '#64748b',
-              accent: '#94a3b8',
-              bg: '#0f0f0f',
-              surface: '#1a1a1a',
-              text: '#e5e7eb'
+              primary: '#94a3b8',
+              accent: '#cbd5e1',
+              bg: '#0f172a',
+              surface: '#1e293b',
+              text: '#f8fafc'
             },
             'deep-space': {
-              primary: '#7c3aed',
-              accent: '#a78bfa',
-              bg: '#0a0a14',
-              surface: '#12121f',
-              text: '#e9d5ff'
+              primary: '#a78bfa',
+              accent: '#c4b5fd',
+              bg: '#1e1b4b',
+              surface: '#312e81',
+              text: '#f5f3ff'
+            },
+            'emerald-forest': {
+              primary: '#34d399',
+              accent: '#6ee7b7',
+              bg: '#022c22',
+              surface: '#065f46',
+              text: '#ecfdf5'
+            },
+            'sunset-orange': {
+              primary: '#fb923c',
+              accent: '#fbbf24',
+              bg: '#1c1917',
+              surface: '#44403c',
+              text: '#fef3c7'
+            },
+            'pink-passion': {
+              primary: '#f472b6',
+              accent: '#ec4899',
+              bg: '#1e1b3e',
+              surface: '#3b2b5f',
+              text: '#fce7f3'
+            },
+            'cyber-aqua': {
+              primary: '#06b6d4',
+              accent: '#14b8a6',
+              bg: '#0a1f2e',
+              surface: '#1e3a4f',
+              text: '#cffafe'
             }
           };
           
           const scheme = FREE_SCHEMES[colorScheme] || FREE_SCHEMES['pomociclo-default'];
           const root = document.documentElement;
+          const body = document.body;
           
           root.style.setProperty('--primary', scheme.primary);
           root.style.setProperty('--accent', scheme.accent);
           root.style.setProperty('--bg', scheme.bg);
           root.style.setProperty('--surface', scheme.surface);
           root.style.setProperty('--text', scheme.text);
+          
+          body.style.setProperty('--primary', scheme.primary);
+          body.style.setProperty('--accent', scheme.accent);
+          body.style.setProperty('--bg', scheme.bg);
+          body.style.setProperty('--surface', scheme.surface);
+          body.style.setProperty('--text', scheme.text);
           
           console.log("[AppTheming] Aplicando tema gratuito:", colorScheme, scheme);
         } catch (e) {

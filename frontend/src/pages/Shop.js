@@ -23,8 +23,8 @@ import { useApp } from "@/context/AppContext.jsx";
 import * as siteStyle from "../lib/siteStyle";
 import { setCycleState } from "../lib/siteStyle";
 import Footer from '../components/Footer';
-// Mostrar apenas selos e temas (bordas ocultas)
-const VISIBLE_TYPES = ["seal", "theme"];
+// Mostrar apenas selos (temas e bordas ocultos temporariamente)
+const VISIBLE_TYPES = ["seal"];
 
 
 /* CSS inline para animações */

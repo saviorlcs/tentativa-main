@@ -15,59 +15,111 @@ const THEME_MODES = [
   { value: 'auto', label: 'Auto', icon: Monitor },
 ];
 
-// TEMAS GRATUITOS - Estilo do site (dark, profissional, sutis)
+// TEMAS GRATUITOS - Melhorados para melhor visibilidade e contraste
 const FREE_COLOR_SCHEMES = [
   {
     id: 'pomociclo-default',
     name: 'Pomociclo Padrão',
-    description: 'Tema original azul/cyan',
+    description: 'Tema original cyan vibrante',
     colors: {
-      primary: '#06b6d4',
-      accent: '#8b5cf6',
-      bg: '#0b1220',
-      surface: '#0f172a',
-      text: '#e5e7eb'
+      primary: '#22d3ee',
+      accent: '#a78bfa',
+      bg: '#0f172a',
+      surface: '#1e293b',
+      text: '#f1f5f9'
     },
-    gradient: 'from-cyan-500 to-purple-600',
+    gradient: 'from-cyan-400 to-purple-500',
   },
   {
     id: 'midnight-blue',
-    name: 'Azul Meia-Noite',
-    description: 'Tons de azul profundo',
+    name: 'Azul Oceano',
+    description: 'Azul claro e energético',
     colors: {
-      primary: '#3b82f6',
-      accent: '#60a5fa',
-      bg: '#0a0e1a',
-      surface: '#0f1419',
-      text: '#e2e8f0'
+      primary: '#60a5fa',
+      accent: '#93c5fd',
+      bg: '#0c1a2e',
+      surface: '#1e3a5f',
+      text: '#f0f9ff'
     },
-    gradient: 'from-blue-600 to-blue-400',
+    gradient: 'from-blue-400 to-sky-300',
   },
   {
     id: 'dark-slate',
-    name: 'Ardósia Escura',
-    description: 'Cinza neutro e elegante',
+    name: 'Prata Moderna',
+    description: 'Cinza claro com alto contraste',
     colors: {
-      primary: '#64748b',
-      accent: '#94a3b8',
-      bg: '#0f0f0f',
-      surface: '#1a1a1a',
-      text: '#e5e7eb'
+      primary: '#94a3b8',
+      accent: '#cbd5e1',
+      bg: '#0f172a',
+      surface: '#1e293b',
+      text: '#f8fafc'
     },
-    gradient: 'from-slate-600 to-slate-400',
+    gradient: 'from-slate-400 to-slate-300',
   },
   {
     id: 'deep-space',
-    name: 'Espaço Profundo',
-    description: 'Roxo espacial sutil',
+    name: 'Roxo Neon',
+    description: 'Roxo vibrante e futurista',
     colors: {
-      primary: '#7c3aed',
-      accent: '#a78bfa',
-      bg: '#0a0a14',
-      surface: '#12121f',
-      text: '#e9d5ff'
+      primary: '#a78bfa',
+      accent: '#c4b5fd',
+      bg: '#1e1b4b',
+      surface: '#312e81',
+      text: '#f5f3ff'
     },
-    gradient: 'from-violet-600 to-purple-400',
+    gradient: 'from-violet-400 to-purple-300',
+  },
+  {
+    id: 'emerald-forest',
+    name: 'Floresta Esmeralda',
+    description: 'Verde vibrante e natural',
+    colors: {
+      primary: '#34d399',
+      accent: '#6ee7b7',
+      bg: '#022c22',
+      surface: '#065f46',
+      text: '#ecfdf5'
+    },
+    gradient: 'from-emerald-400 to-green-300',
+  },
+  {
+    id: 'sunset-orange',
+    name: 'Pôr do Sol',
+    description: 'Laranja e vermelho quentes',
+    colors: {
+      primary: '#fb923c',
+      accent: '#fbbf24',
+      bg: '#1c1917',
+      surface: '#44403c',
+      text: '#fef3c7'
+    },
+    gradient: 'from-orange-400 to-amber-300',
+  },
+  {
+    id: 'pink-passion',
+    name: 'Rosa Vibrante',
+    description: 'Rosa e magenta energéticos',
+    colors: {
+      primary: '#f472b6',
+      accent: '#ec4899',
+      bg: '#1e1b3e',
+      surface: '#3b2b5f',
+      text: '#fce7f3'
+    },
+    gradient: 'from-pink-400 to-rose-400',
+  },
+  {
+    id: 'cyber-aqua',
+    name: 'Aqua Cyber',
+    description: 'Ciano e verde tecnológico',
+    colors: {
+      primary: '#06b6d4',
+      accent: '#14b8a6',
+      bg: '#0a1f2e',
+      surface: '#1e3a4f',
+      text: '#cffafe'
+    },
+    gradient: 'from-cyan-400 to-teal-400',
   },
 ];
 
@@ -115,32 +167,57 @@ export default function Appearance() {
 
   function applyTheme(mode, scheme) {
     const root = document.documentElement;
+    const body = document.body;
     
     // Aplica modo (claro/escuro/auto)
     if (mode === 'light') {
       root.classList.remove('dark');
       root.classList.add('light');
+      body.classList.remove('dark');
+      body.classList.add('light');
     } else if (mode === 'dark') {
       root.classList.remove('light');
       root.classList.add('dark');
+      body.classList.remove('light');
+      body.classList.add('dark');
     } else {
       // Auto - detecta preferência do sistema
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       root.classList.remove('light', 'dark');
-      root.classList.add(prefersDark ? 'dark' : 'light');
+      body.classList.remove('light', 'dark');
+      const modeClass = prefersDark ? 'dark' : 'light';
+      root.classList.add(modeClass);
+      body.classList.add(modeClass);
     }
 
     // Aplica esquema de cores gratuito
     const selectedScheme = FREE_COLOR_SCHEMES.find(s => s.id === scheme);
     if (selectedScheme) {
-      // Aplica as variáveis CSS personalizadas
+      // Aplica as variáveis CSS personalizadas COM !important via style direto
       root.style.setProperty('--primary', selectedScheme.colors.primary);
       root.style.setProperty('--accent', selectedScheme.colors.accent);
       root.style.setProperty('--bg', selectedScheme.colors.bg);
       root.style.setProperty('--surface', selectedScheme.colors.surface);
       root.style.setProperty('--text', selectedScheme.colors.text);
       
+      // Força atualização no body também
+      body.style.setProperty('--primary', selectedScheme.colors.primary);
+      body.style.setProperty('--accent', selectedScheme.colors.accent);
+      body.style.setProperty('--bg', selectedScheme.colors.bg);
+      body.style.setProperty('--surface', selectedScheme.colors.surface);
+      body.style.setProperty('--text', selectedScheme.colors.text);
+      
+      // Salva no localStorage para persistência
+      localStorage.setItem('theme_mode', mode);
+      localStorage.setItem('color_scheme', scheme);
+      localStorage.setItem('theme_colors', JSON.stringify(selectedScheme.colors));
+      
       console.log('[Appearance] Tema aplicado:', scheme, selectedScheme.colors);
+      
+      // Força re-render disparando um evento customizado
+      window.dispatchEvent(new CustomEvent('themeChanged', { 
+        detail: { mode, scheme, colors: selectedScheme.colors } 
+      }));
     }
   }
 
