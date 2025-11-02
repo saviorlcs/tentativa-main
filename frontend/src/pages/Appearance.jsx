@@ -15,111 +15,49 @@ const THEME_MODES = [
   { value: 'auto', label: 'Auto', icon: Monitor },
 ];
 
-// TEMAS GRATUITOS - Melhorados para melhor visibilidade e contraste
+// TEMAS GRATUITOS - Mapeados para os data-theme do index.css
 const FREE_COLOR_SCHEMES = [
   {
     id: 'pomociclo-default',
     name: 'Pomociclo Padrão',
     description: 'Tema original cyan vibrante',
-    colors: {
-      primary: '#22d3ee',
-      accent: '#a78bfa',
-      bg: '#0f172a',
-      surface: '#1e293b',
-      text: '#f1f5f9'
-    },
+    dataTheme: null, // Remove data-theme (usa :root padrão)
     gradient: 'from-cyan-400 to-purple-500',
   },
   {
-    id: 'midnight-blue',
-    name: 'Azul Oceano',
-    description: 'Azul claro e energético',
-    colors: {
-      primary: '#60a5fa',
-      accent: '#93c5fd',
-      bg: '#0c1a2e',
-      surface: '#1e3a5f',
-      text: '#f0f9ff'
-    },
-    gradient: 'from-blue-400 to-sky-300',
+    id: 'midnight-purple',
+    name: 'Midnight Purple',
+    description: 'Roxo escuro elegante',
+    dataTheme: 'midnight-purple',
+    gradient: 'from-purple-400 to-violet-500',
   },
   {
-    id: 'dark-slate',
-    name: 'Prata Moderna',
-    description: 'Cinza claro com alto contraste',
-    colors: {
-      primary: '#94a3b8',
-      accent: '#cbd5e1',
-      bg: '#0f172a',
-      surface: '#1e293b',
-      text: '#f8fafc'
-    },
-    gradient: 'from-slate-400 to-slate-300',
+    id: 'deep-ocean',
+    name: 'Deep Ocean',
+    description: 'Azuis profundos marinhos',
+    dataTheme: 'deep-ocean',
+    gradient: 'from-blue-400 to-sky-400',
   },
   {
-    id: 'deep-space',
-    name: 'Roxo Neon',
-    description: 'Roxo vibrante e futurista',
-    colors: {
-      primary: '#a78bfa',
-      accent: '#c4b5fd',
-      bg: '#1e1b4b',
-      surface: '#312e81',
-      text: '#f5f3ff'
-    },
-    gradient: 'from-violet-400 to-purple-300',
+    id: 'forest-night',
+    name: 'Forest Night',
+    description: 'Verdes escuros naturais',
+    dataTheme: 'forest-night',
+    gradient: 'from-emerald-400 to-green-400',
   },
   {
-    id: 'emerald-forest',
-    name: 'Floresta Esmeralda',
-    description: 'Verde vibrante e natural',
-    colors: {
-      primary: '#34d399',
-      accent: '#6ee7b7',
-      bg: '#022c22',
-      surface: '#065f46',
-      text: '#ecfdf5'
-    },
-    gradient: 'from-emerald-400 to-green-300',
+    id: 'warm-ember',
+    name: 'Warm Ember',
+    description: 'Laranjas e vermelhos quentes',
+    dataTheme: 'warm-ember',
+    gradient: 'from-orange-400 to-amber-400',
   },
   {
-    id: 'sunset-orange',
-    name: 'Pôr do Sol',
-    description: 'Laranja e vermelho quentes',
-    colors: {
-      primary: '#fb923c',
-      accent: '#fbbf24',
-      bg: '#1c1917',
-      surface: '#44403c',
-      text: '#fef3c7'
-    },
-    gradient: 'from-orange-400 to-amber-300',
-  },
-  {
-    id: 'pink-passion',
-    name: 'Rosa Vibrante',
-    description: 'Rosa e magenta energéticos',
-    colors: {
-      primary: '#f472b6',
-      accent: '#ec4899',
-      bg: '#1e1b3e',
-      surface: '#3b2b5f',
-      text: '#fce7f3'
-    },
+    id: 'rose-twilight',
+    name: 'Rose Twilight',
+    description: 'Rosas e magentas suaves',
+    dataTheme: 'rose-twilight',
     gradient: 'from-pink-400 to-rose-400',
-  },
-  {
-    id: 'cyber-aqua',
-    name: 'Aqua Cyber',
-    description: 'Ciano e verde tecnológico',
-    colors: {
-      primary: '#06b6d4',
-      accent: '#14b8a6',
-      bg: '#0a1f2e',
-      surface: '#1e3a4f',
-      text: '#cffafe'
-    },
-    gradient: 'from-cyan-400 to-teal-400',
   },
 ];
 
@@ -135,6 +73,14 @@ export default function Appearance() {
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // Aplica tema imediatamente ao carregar
+  useEffect(() => {
+    if (!loading && colorScheme && !equippedTheme) {
+      console.log('[Appearance] Aplicando tema inicial:', themeMode, colorScheme);
+      applyTheme(themeMode, colorScheme);
+    }
+  }, [loading, colorScheme, themeMode, equippedTheme]);
 
   async function loadUserData() {
     try {
@@ -169,6 +115,8 @@ export default function Appearance() {
     const root = document.documentElement;
     const body = document.body;
     
+    console.log('[Appearance] Aplicando tema:', mode, scheme);
+    
     // Aplica modo (claro/escuro/auto)
     if (mode === 'light') {
       root.classList.remove('dark');
@@ -190,33 +138,29 @@ export default function Appearance() {
       body.classList.add(modeClass);
     }
 
-    // Aplica esquema de cores gratuito
+    // Encontra o esquema selecionado
     const selectedScheme = FREE_COLOR_SCHEMES.find(s => s.id === scheme);
+    
     if (selectedScheme) {
-      // Aplica as variáveis CSS personalizadas COM !important via style direto
-      root.style.setProperty('--primary', selectedScheme.colors.primary);
-      root.style.setProperty('--accent', selectedScheme.colors.accent);
-      root.style.setProperty('--bg', selectedScheme.colors.bg);
-      root.style.setProperty('--surface', selectedScheme.colors.surface);
-      root.style.setProperty('--text', selectedScheme.colors.text);
+      // Remove qualquer data-theme anterior
+      root.removeAttribute('data-theme');
       
-      // Força atualização no body também
-      body.style.setProperty('--primary', selectedScheme.colors.primary);
-      body.style.setProperty('--accent', selectedScheme.colors.accent);
-      body.style.setProperty('--bg', selectedScheme.colors.bg);
-      body.style.setProperty('--surface', selectedScheme.colors.surface);
-      body.style.setProperty('--text', selectedScheme.colors.text);
+      // Aplica o novo data-theme se houver
+      if (selectedScheme.dataTheme) {
+        root.setAttribute('data-theme', selectedScheme.dataTheme);
+        console.log('[Appearance] ✅ Data-theme aplicado:', selectedScheme.dataTheme);
+      } else {
+        console.log('[Appearance] ✅ Tema padrão (sem data-theme)');
+      }
       
       // Salva no localStorage para persistência
       localStorage.setItem('theme_mode', mode);
       localStorage.setItem('color_scheme', scheme);
-      localStorage.setItem('theme_colors', JSON.stringify(selectedScheme.colors));
-      
-      console.log('[Appearance] Tema aplicado:', scheme, selectedScheme.colors);
+      localStorage.setItem('applied_data_theme', selectedScheme.dataTheme || 'default');
       
       // Força re-render disparando um evento customizado
       window.dispatchEvent(new CustomEvent('themeChanged', { 
-        detail: { mode, scheme, colors: selectedScheme.colors } 
+        detail: { mode, scheme, dataTheme: selectedScheme.dataTheme || 'default' } 
       }));
     }
   }
@@ -411,25 +355,12 @@ export default function Appearance() {
                     {scheme.description}
                   </div>
                   
-                  {/* Preview de cores */}
+                  {/* Preview de cores usando gradiente */}
                   <div className="flex gap-2">
                     <div
-                      className="flex-1 h-12 rounded-lg border border-white/20 shadow-lg"
-                      style={{ background: `linear-gradient(135deg, ${scheme.colors.primary}, ${scheme.colors.accent})` }}
-                      title="Cores principais"
+                      className={`flex-1 h-12 rounded-lg border border-white/20 shadow-lg bg-gradient-to-r ${scheme.gradient}`}
+                      title="Preview do tema"
                     />
-                    <div className="flex flex-col gap-1 flex-1">
-                      <div
-                        className="h-5 rounded border border-white/10"
-                        style={{ backgroundColor: scheme.colors.bg }}
-                        title="Background"
-                      />
-                      <div
-                        className="h-6 rounded border border-white/10"
-                        style={{ backgroundColor: scheme.colors.surface }}
-                        title="Surface"
-                      />
-                    </div>
                   </div>
                 </button>
               );

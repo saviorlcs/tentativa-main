@@ -72,8 +72,11 @@ code {
         --chart-5: 340 75% 55%;
     }
 }
+/* ============================================ */
+/*       TEMA PADRÃO (Dark Blue Cyan)         */
+/* ============================================ */
 :root{
-  /* tema (já existia na minha msg anterior) */
+  /* Cores principais */
   --bg:#0b1220;
   --surface:#0f172a;
   --primary:#06b6d4;
@@ -85,7 +88,155 @@ code {
   --app-border-w: 1px;
   --app-border: rgba(148,163,184,.35);
   --app-glow: 0 0 0 rgba(0,0,0,0);
+  
+  /* Intensidade da animação */
+  --aura-intensity: 1;
 }
+
+/* ============================================ */
+/*       TEMAS GRATUITOS - VARIAÇÕES SUTIS    */
+/* ============================================ */
+
+/* Tema 1: Midnight Purple (GRATUITO) */
+[data-theme="midnight-purple"] {
+  --bg:#0e0a1a;
+  --surface:#1a1229;
+  --primary:#a78bfa;
+  --accent:#c084fc;
+  --text:#e9d5ff;
+  --app-border: rgba(167,139,250,.30);
+  --app-glow: 0 0 8px rgba(167,139,250,.08);
+}
+
+/* Tema 2: Deep Ocean (GRATUITO) */
+[data-theme="deep-ocean"] {
+  --bg:#0a1018;
+  --surface:#0c1a2e;
+  --primary:#0ea5e9;
+  --accent:#38bdf8;
+  --text:#dbeafe;
+  --app-border: rgba(14,165,233,.32);
+  --app-glow: 0 0 8px rgba(14,165,233,.10);
+}
+
+/* Tema 3: Forest Night (GRATUITO) */
+[data-theme="forest-night"] {
+  --bg:#0a120f;
+  --surface:#0f1e19;
+  --primary:#10b981;
+  --accent:#34d399;
+  --text:#d1fae5;
+  --app-border: rgba(16,185,129,.30);
+  --app-glow: 0 0 8px rgba(16,185,129,.08);
+}
+
+/* Tema 4: Warm Ember (GRATUITO) */
+[data-theme="warm-ember"] {
+  --bg:#1a0e0a;
+  --surface:#2d1712;
+  --primary:#f97316;
+  --accent:#fb923c;
+  --text:#fed7aa;
+  --app-border: rgba(249,115,22,.30);
+  --app-glow: 0 0 10px rgba(249,115,22,.10);
+}
+
+/* Tema 5: Rose Twilight (GRATUITO) */
+[data-theme="rose-twilight"] {
+  --bg:#1a0a14;
+  --surface:#2d1220;
+  --primary:#ec4899;
+  --accent:#f472b6;
+  --text:#fce7f3;
+  --app-border: rgba(236,72,153,.32);
+  --app-glow: 0 0 8px rgba(236,72,153,.10);
+}
+
+/* ============================================ */
+/*       TEMAS PREMIUM - PARA A LOJA          */
+/* ============================================ */
+
+/* Tema Premium: Aurora Borealis */
+[data-theme="aurora-borealis"] {
+  --bg:#0a0f1e;
+  --surface:#12182e;
+  --primary:#00d9ff;
+  --accent:#7c3aed;
+  --text:#e0f2fe;
+  --app-border: rgba(0,217,255,.40);
+  --app-glow: 0 0 16px rgba(0,217,255,.15);
+  --app-radius: 20px;
+  --aura-intensity: 1.5;
+}
+
+/* Tema Premium: Golden Sunset */
+[data-theme="golden-sunset"] {
+  --bg:#1a1008;
+  --surface:#2d1e0f;
+  --primary:#fbbf24;
+  --accent:#f59e0b;
+  --text:#fef3c7;
+  --app-border: rgba(251,191,36,.45);
+  --app-glow: 0 0 18px rgba(251,191,36,.18);
+  --app-radius: 18px;
+  --aura-intensity: 1.4;
+}
+
+/* Tema Premium: Neon Matrix */
+[data-theme="neon-matrix"] {
+  --bg:#0a1a0f;
+  --surface:#0f2e1a;
+  --primary:#00ff88;
+  --accent:#00ffcc;
+  --text:#ccfff0;
+  --app-border: rgba(0,255,136,.42);
+  --app-glow: 0 0 20px rgba(0,255,136,.20);
+  --app-radius: 14px;
+  --aura-intensity: 1.6;
+}
+
+/* Tema Premium: Royal Purple */
+[data-theme="royal-purple"] {
+  --bg:#0f0a1a;
+  --surface:#1a1030;
+  --primary:#9333ea;
+  --accent:#a855f7;
+  --text:#ede9fe;
+  --app-border: rgba(147,51,234,.48);
+  --app-glow: 0 0 22px rgba(147,51,234,.22);
+  --app-radius: 22px;
+  --aura-intensity: 1.7;
+}
+
+/* Tema Premium: Ice Crystal */
+[data-theme="ice-crystal"] {
+  --bg:#0a1220;
+  --surface:#0f1e2e;
+  --primary:#60a5fa;
+  --accent:#93c5fd;
+  --text:#dbeafe;
+  --app-border: rgba(96,165,250,.50);
+  --app-glow: 0 0 24px rgba(96,165,250,.24);
+  --app-radius: 24px;
+  --aura-intensity: 1.8;
+}
+
+/* Tema Premium: Crimson Night */
+[data-theme="crimson-night"] {
+  --bg:#1a0a0f;
+  --surface:#2d1218;
+  --primary:#dc2626;
+  --accent:#ef4444;
+  --text:#fee2e2;
+  --app-border: rgba(220,38,38,.45);
+  --app-glow: 0 0 20px rgba(220,38,38,.20);
+  --app-radius: 18px;
+  --aura-intensity: 1.5;
+}
+
+/* ============================================ */
+/*       APLICAÇÃO DOS ESTILOS                */
+/* ============================================ */
 
 /* superfícies que respeitam o "preset" de borda */
 .app-surface{
@@ -93,20 +244,25 @@ code {
   border-radius: var(--app-radius);
   border: var(--app-border-w) solid var(--app-border);
   box-shadow: var(--app-glow);
+  transition: all 0.3s ease;
 }
 
 /* exemplo – corpo usa as cores do tema */
 body{
   background:
     radial-gradient(1000px circle at 20% -10%, var(--surface), transparent 60%),
-    linear-gradient(180deg, var(--bg), #0a0f1a);
+    linear-gradient(180deg, var(--bg), color-mix(in oklab, var(--bg) 80%, black));
   color: var(--text);
+  transition: background 0.5s ease, color 0.3s ease;
 }
+
+/* Animação auraPulse com intensidade variável */
 @keyframes auraPulse {
-  0%   { box-shadow: 0 0 16px rgba(56,189,248,.12); }
-  50%  { box-shadow: 0 0 28px rgba(168,85,247,.24); }
-  100% { box-shadow: 0 0 16px rgba(56,189,248,.12); }
+  0%   { box-shadow: 0 0 calc(16px * var(--aura-intensity, 1)) rgba(56,189,248,.12); }
+  50%  { box-shadow: 0 0 calc(28px * var(--aura-intensity, 1)) rgba(168,85,247,.24); }
+  100% { box-shadow: 0 0 calc(16px * var(--aura-intensity, 1)) rgba(56,189,248,.12); }
 }
+
 .seal-animated {
   animation: auraPulse 3.5s ease-in-out infinite;
 }

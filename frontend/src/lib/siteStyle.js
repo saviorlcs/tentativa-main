@@ -208,14 +208,17 @@ export function applyThemeEffects(effects) {
   console.log('[siteStyle] applyThemeEffects chamado:', effects);
   
   if (!effects) {
-    console.log('[siteStyle] Sem efeitos de tema, restaurando cores padrão');
+    console.log('[siteStyle] Sem efeitos de tema, restaurando padrão');
+    root.removeAttribute('data-theme');
     root.removeAttribute('data-theme-mode');
     root.removeAttribute('data-celebrate');
-    
-    // Restaura APENAS as cores de destaque padrão
-    // NÃO toca em --bg, --surface ou --text
-    root.style.setProperty('--primary', '#06b6d4');
-    root.style.setProperty('--accent', '#8b5cf6');
+    return;
+  }
+
+  // Suporte para temas com data-theme (novo sistema)
+  if (effects.theme_id) {
+    console.log('[siteStyle] Aplicando tema por ID:', effects.theme_id);
+    root.setAttribute('data-theme', effects.theme_id);
     return;
   }
 
@@ -247,6 +250,17 @@ export function applyThemeEffects(effects) {
   // REMOVE qualquer modo de fundo especial
   root.removeAttribute('data-theme-mode');
   root.removeAttribute('data-celebrate');
+}
+
+/**
+ * Restaura o tema padrão (Dark Blue Cyan)
+ */
+export function restoreDefaultTheme() {
+  const root = document.documentElement;
+  root.removeAttribute('data-theme');
+  root.removeAttribute('data-theme-mode');
+  root.removeAttribute('data-celebrate');
+  console.log('[siteStyle] Tema padrão restaurado');
 }
 
 /**

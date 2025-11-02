@@ -197,25 +197,29 @@ def generate_visual_effects(score: float, rarity: str, item_type: str, index: in
     # Temas variados por tipo
     seal_themes = ["default", "fire", "water", "earth", "air", "light", "dark", "cyber", "neon", "matrix", "aurora", "plasma", "quantum", "crystal", "cosmic", "stellar", "nebula", "void", "galaxy", "prisma", "hologram", "energy", "spirit", "divine", "chaos"]
     border_themes = ["default", "cyber", "neon", "circuit", "aurora", "plasma", "energy", "crystal", "cosmic", "divine", "void", "infinity"]
-    # TEMAS PREMIUM - Organizados por raridade
-    # Comum (0-0.60): Temas básicos mas bonitos
-    # Raro (0.60-0.85): Temas vibrantes com efeitos sutis  
-    # Épico (0.85-0.95): Temas incríveis com animações
-    # Lendário (0.95-1.0): Temas únicos com efeitos especiais
+    # TEMAS - Agora com temas gratuitos e premium distintos
+    # Os primeiros 5 terão score baixo (GRATUITOS)
+    # Os demais serão premium com scores crescentes
     theme_themes = [
-        # Comum (índices 0-14)
-        "default", "cyber", "neon", "ocean", "forest", 
-        "sunset", "twilight", "midnight", "slate", "storm",
-        "ember", "breeze", "tide", "shadow", "dawn",
+        # GRATUITOS (índices 0-4) - score baixo
+        "midnight-purple",    # Gratuito 1
+        "deep-ocean",         # Gratuito 2
+        "forest-night",       # Gratuito 3
+        "warm-ember",         # Gratuito 4
+        "rose-twilight",      # Gratuito 5
         
-        # Raro (índices 15-19)
-        "aurora", "plasma", "nebula", "crystal", "prism",
+        # PREMIUM COMUM (índices 5-14)
+        "slate", "storm", "breeze", "tide", "shadow", 
+        "dawn", "dusk", "mist", "frost", "ember",
         
-        # Épico (índices 20-23)
-        "cosmic", "phoenix", "void", "galaxy",
+        # PREMIUM RARO (índices 15-19)
+        "aurora-borealis", "plasma", "nebula", "crystal", "cyber-aqua",
         
-        # Lendário (índices 24)
-        "infinity"
+        # PREMIUM ÉPICO (índices 20-23)
+        "golden-sunset", "neon-matrix", "void", "galaxy",
+        
+        # PREMIUM LENDÁRIO (índices 24)
+        "royal-purple", "ice-crystal", "crimson-night"
     ]
     
     if item_type == "seal":
@@ -238,6 +242,7 @@ def generate_visual_effects(score: float, rarity: str, item_type: str, index: in
         "animation_speed": 1.0 + score * 2.0,  # 1x a 3x
         "particle_count": int(score * 50),  # 0 a 50 partículas
         "theme": selected_theme,  # Adiciona o tema visual
+        "theme_id": selected_theme,  # ID do tema para aplicação via data-theme
         "rarity": rarity,  # Adiciona raridade
         "hue": hue,  # Expõe o hue para debugging
     }
@@ -270,6 +275,17 @@ def generate_visual_effects(score: float, rarity: str, item_type: str, index: in
 
 def generate_descriptive_name(score: float, rarity: str, item_type: str, index: int) -> str:
     """Gera nomes descritivos e progressivamente mais elaborados."""
+    
+    # Nomes especiais para temas gratuitos (índices 0-4 de themes)
+    if item_type == "theme" and index < 5:
+        free_theme_names = [
+            "Tema Midnight Purple",      # 0
+            "Tema Deep Ocean",            # 1
+            "Tema Forest Night",          # 2
+            "Tema Warm Ember",            # 3
+            "Tema Rose Twilight",         # 4
+        ]
+        return f"[GRATUITO] {free_theme_names[index]}"
     
     # Prefixos por raridade
     prefixes = {
@@ -329,8 +345,15 @@ def generate_items_for_type(item_type: str, count: int) -> List[Dict[str, Any]]:
         # Calcula métricas
         hours = hours_from_rarity_score(rarity_score)
         price = coins_from_hours(hours)
-        rarity = get_rarity_category(rarity_score)
-        level_req = calculate_level_requirement(rarity_score)
+        
+        # TEMAS GRATUITOS: Os primeiros 5 temas são GRATUITOS
+        if item_type == "theme" and i < 5:
+            price = 0  # Gratuito!
+            level_req = 1  # Sem requisito de nível
+            rarity = "common"  # Sempre comum
+        else:
+            rarity = get_rarity_category(rarity_score)
+            level_req = calculate_level_requirement(rarity_score)
         
         # Gera features únicas
         uniqueness_features = get_uniqueness_features(rarity_score, rarity, item_type, i)
@@ -338,11 +361,14 @@ def generate_items_for_type(item_type: str, count: int) -> List[Dict[str, Any]]:
         name = generate_descriptive_name(rarity_score, rarity, item_type, i)
         
         # Descrição dinâmica
-        desc_parts = [f"Item {rarity.upper()}", f"{int(hours)}h de estudo"]
-        if rarity_score >= 0.85:
-            desc_parts.append("Efeitos avançados")
-        if rarity_score >= 0.95:
-            desc_parts.append("COLECIONÁVEL RARO")
+        if item_type == "theme" and i < 5:
+            desc_parts = ["Tema GRATUITO", "Disponível para todos"]
+        else:
+            desc_parts = [f"Item {rarity.upper()}", f"{int(hours)}h de estudo"]
+            if rarity_score >= 0.85:
+                desc_parts.append("Efeitos avançados")
+            if rarity_score >= 0.95:
+                desc_parts.append("COLECIONÁVEL RARO")
         
         description = " • ".join(desc_parts)
         
