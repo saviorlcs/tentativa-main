@@ -141,18 +141,9 @@ code {
   border-color: color-mix(in srgb, var(--surface) 70%, white 30%) !important;
 }
 
-/* Backgrounds de botões e elementos interativos */
-.bg-cyan-500,
-.bg-cyan-600,
-[class*="bg-cyan"] {
-  background-color: var(--primary) !important;
-}
 
-.bg-purple-500,
-.bg-purple-600,
-[class*="bg-purple"] {
-  background-color: var(--accent) !important;
-}
+
+
 
 /* Hover states */
 .hover\:bg-cyan-600:hover,
