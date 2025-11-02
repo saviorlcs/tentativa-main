@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { Button } from "./ui/button";
 import { Trophy, ShoppingBag, Users, Settings, LogOut, ListOrdered, Book, Brain, Target } from "lucide-react";
 import ModernSealAvatar from "./ModernSealAvatar";
+import Notifications from "./Notifications";
 
 function loginGoogle() {
   // Usa diretamente o backend URL com /api já incluído
@@ -274,6 +275,9 @@ const handleLogout = async () => {
           <div className="flex items-center gap-2">
             {user ? (
               <>
+                {/* Notifica\u00e7\u00f5es */}
+                <Notifications user={user} />
+                
                 {/* Avatar com info no hover */}
                 <div className="group relative">
                   <div 

@@ -3699,34 +3699,45 @@ async def calendar_create(ev: CalendarEventCreate, request: Request, session_tok
         if not owned:
             raise HTTPException(status_code=400, detail="subject_id inválido")
 
-    # Gera datas recorrentes
-    recurring_dates = generate_recurring_dates(
-        ev.start, ev.end, 
-        ev.recurrence_type or "once",
-        ev.recurrence_interval or 1,
-        ev.recurrence_until,
-        ev.recurrence_count
-    )
-    
-    created_events = []
-    for start_dt, end_dt in recurring_dates:
-        doc = CalendarEvent(
-            user_id=user.id,
-            title=ev.title,
-            start=start_dt,
-            end=end_dt,
-            subject_id=ev.subject_id,
-            event_type=ev.event_type or "other",
-            checklist=ev.checklist or []
-        ).model_dump()
-        # normaliza ISO
-        doc["start"] = doc["start"].isoformat()
-        doc["end"]   = doc["end"].isoformat()
-        doc["created_at"] = doc["created_at"].isoformat()
-        await db.calendar_events.insert_one(doc)
-        created_events.append(doc)
-    
-    return {"ok": True, "created_count": len(created_events), "events": created_events[:5]}
+    try:
+        # Gera datas recorrentes
+        recurring_dates = generate_recurring_dates(
+            ev.start, ev.end, 
+            ev.recurrence_type or "once",
+            ev.recurrence_interval or 1,
+            ev.recurrence_until,
+            ev.recurrence_count
+        )
+        
+        created_events = []
+        for start_dt, end_dt in recurring_dates:
+            doc = CalendarEvent(
+                user_id=user.id,
+                title=ev.title,
+                start=start_dt,
+                end=end_dt,
+                subject_id=ev.subject_id,
+                event_type=ev.event_type or "other",
+                checklist=ev.checklist or []
+            ).model_dump()
+            # normaliza ISO
+            doc["start"] = doc["start"].isoformat() if hasattr(doc["start"], 'isoformat') else doc["start"]
+            doc["end"]   = doc["end"].isoformat() if hasattr(doc["end"], 'isoformat') else doc["end"]
+            doc["created_at"] = doc["created_at"].isoformat() if hasattr(doc["created_at"], 'isoformat') else doc["created_at"]
+            
+            # Cria uma cópia limpa para resposta (sem _id do MongoDB)
+            clean_doc = dict(doc)
+            await db.calendar_events.insert_one(doc)
+            created_events.append(clean_doc)
+        
+        return {"ok": True, "created_count": len(created_events), "events": created_events[:5]}
+    except Exception as e:
+        # Log detalhado para debug
+        import traceback
+        error_detail = f"Erro ao criar evento: {str(e)}"
+        print(f"[calendar_create ERROR] {error_detail}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=error_detail)
 
 from collections import defaultdict
 from fastapi import Query

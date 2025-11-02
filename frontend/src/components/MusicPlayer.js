@@ -12,11 +12,21 @@ import { Music, Pause, Play, Minus, X } from "lucide-react";
 
 /** Presets (vídeo ou playlist) */
 const MUSIC_PRESETS = [
-  { id: "jfKfPfyJRdk", name: "Lofi Hip Hop", type: "video" },
-  { id: "9A6vm03JeyQ", name: "Piano Relaxante", type: "video" },
-  { id: "Dx5qFachd3A", name: "Jazz Suave", type: "video" },
-  { id: "5qap5aO4i9A", name: "Study Music", type: "video" },
-  { id: "PLzCxunOM5WFI4SgkC3Jq0rYbHnUqH1JwN", name: "Ambient Nature (playlist)", type: "playlist" },
+  { id: "jfKfPfyJRdk", name: "Lofi Hip Hop", type: "video", emoji: "🎵" },
+  { id: "5qap5aO4i9A", name: "Lofi Study", type: "video", emoji: "📚" },
+  { id: "9A6vm03JeyQ", name: "Piano Relaxante", type: "video", emoji: "🎹" },
+  { id: "Dx5qFachd3A", name: "Jazz Suave", type: "video", emoji: "🎷" },
+  
+  // Sons Ambientes
+  { id: "q76bMs-NwRk", name: "Chuva", type: "video", emoji: "🌧️" },
+  { id: "OfEJxHImBqY", name: "Floresta", type: "video", emoji: "🌲" },
+  { id: "UgHKb_7884o", name: "Ondas do Mar", type: "video", emoji: "🌊" },
+  { id: "L_LUpnjgPso", name: "Fogueira", type: "video", emoji: "🔥" },
+  { id: "gaJnDdP5JpI", name: "Cafeteria", type: "video", emoji: "☕" },
+  { id: "cEsZuZyr6iU", name: "Relógio", type: "video", emoji: "⏰" },
+  { id: "F1EUAtBVTSQ", name: "Pássaros", type: "video", emoji: "🐦" },
+  
+  { id: "PLzCxunOM5WFI4SgkC3Jq0rYbHnUqH1JwN", name: "Ambient Nature (playlist)", type: "playlist", emoji: "🌿" },
 ];
 
 /* -------- helpers -------- */
@@ -120,7 +130,10 @@ export default function MusicPlayer({ isOpen, onClose }) {
                 className="bg-slate-700 hover:bg-slate-600 text-white justify-center py-6"
                 data-testid={`music-preset-${p.id}`}
               >
-                {p.name}
+                <span className="flex items-center gap-2">
+                  {p.emoji && <span className="text-lg">{p.emoji}</span>}
+                  {p.name}
+                </span>
               </Button>
             ))}
           </div>
