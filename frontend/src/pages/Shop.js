@@ -1,4 +1,28 @@
-// frontend/src/pages/Shop.js
+/**
+ * Loja - Sistema de Customização
+ * ================================
+ * 
+ * Loja virtual com itens cosméticos e de personalização.
+ * Sistema completo de compra, equipamento e preview.
+ * 
+ * Funcionalidades:
+ * - Categorias: Selos (avatares), Temas, Bordas
+ * - Sistema de moedas (coins)
+ * - Preview em tempo real
+ * - Equipamento de itens
+ * - Filtros por tipo
+ * - Efeitos visuais aplicados dinamicamente
+ * 
+ * Tipos de itens:
+ * - Seal: Avatares personalizados (básico, moderno, avançado)
+ * - Theme: Esquemas de cores completos
+ * - Border: Bordas decorativas para perfil
+ * 
+ * Integração:
+ * - Backend: API de compra/equipamento
+ * - Context: Atualização global do usuário
+ * - SiteStyle: Aplicação de efeitos visuais
+ */
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -23,11 +47,19 @@ import { useApp } from "@/context/AppContext.jsx";
 import * as siteStyle from "../lib/siteStyle";
 import { setCycleState } from "../lib/siteStyle";
 import Footer from '../components/Footer';
-// Mostrar apenas selos (temas e bordas ocultos temporariamente)
+// ============================================================
+// CONSTANTES E CONFIGURAÇÕES
+// ============================================================
+
+/**
+ * Tipos de itens visíveis na loja
+ * Atualmente apenas "seal" (selos/avatares)
+ */
 const VISIBLE_TYPES = ["seal"];
 
-
-/* CSS inline para animações */
+/**
+ * Estilos CSS para animações da loja
+ */
 const shopStyles = `
   @keyframes spin {
     from { transform: rotate(0deg); }
@@ -35,7 +67,14 @@ const shopStyles = `
   }
 `;
 
-/* ---------- helpers de chamadas ---------- */
+// ============================================================
+// FUNÇÕES AUXILIARES
+// ============================================================
+/**
+ * Tenta múltiplos endpoints para obter lista da loja
+ * @param {Object} apiClient - Cliente API
+ * @returns {Object} - { endpoint, data }
+ */
 async function getAnyShopList(apiClient) {
   const endpoints = ["/shop/list", "/shop/items", "/shop", "/shop/all"];
   let lastErr = null;
@@ -47,6 +86,12 @@ async function getAnyShopList(apiClient) {
   }
   throw lastErr;
 }
+
+/**
+ * Extrai array de itens de diferentes formatos de resposta
+ * @param {*} payload - Resposta da API
+ * @returns {Array} - Array de itens
+ */
 function extractItems(payload) {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.items)) return payload.items;

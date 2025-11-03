@@ -1,4 +1,28 @@
-// Página de Controle Financeiro Pessoal
+/**
+ * Controle Financeiro Pessoal - Pomociclo
+ * =========================================
+ * 
+ * Sistema completo de gestão financeira pessoal.
+ * Acompanhamento de receitas, despesas e investimentos.
+ * 
+ * Funcionalidades:
+ * - Categorização automática de transações
+ * - Visualização mensal e anual
+ * - Gráficos de receitas vs despesas
+ * - Metas de economia
+ * - Relatórios por categoria
+ * - Dashboard com indicadores financeiros
+ * 
+ * Categorias:
+ * - Receitas (salário, freelas, etc)
+ * - Investimentos (reserva de emergência, ações, etc)
+ * - Moradia (aluguel, contas, etc)
+ * - Transporte (carro, combustível, etc)
+ * - Saúde (plano de saúde, remédios, etc)
+ * - Alimentação (mercado, delivery, etc)
+ * - Educação (cursos, livros, etc)
+ * - Lazer (streaming, viagens, etc)
+ */
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -9,7 +33,19 @@ import { Input } from '../components/ui/input';
 import { ArrowLeft, DollarSign, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Edit2, X, Check } from 'lucide-react';
 import Footer from '../components/Footer';
 
+// ============================================================
+// CONSTANTES E CONFIGURAÇÕES
+// ============================================================
+
+/**
+ * Abreviações dos meses para exibição
+ */
 const MONTHS = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+
+/**
+ * Categorias financeiras com subcategorias
+ * Cada categoria possui: nome, ícone, cor e lista de itens
+ */
 
 const FINANCIAL_CATEGORIES = {
   receitas: {
@@ -137,16 +173,31 @@ const FINANCIAL_CATEGORIES = {
   },
 };
 
+// ============================================================
+// COMPONENTE PRINCIPAL - FINANCEIRO
+// ============================================================
+
+/**
+ * Componente principal da página de controle financeiro
+ * Gerencia estado e coordena visualização de dados financeiros
+ */
 export default function Financeiro() {
   const navigate = useNavigate();
+  
+  // Estados principais
   const [user, setUser] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [financialData, setFinancialData] = useState({});
   const [loading, setLoading] = useState(true);
+  
+  // Estados de edição
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
 
+  /**
+   * Carrega usuário e dados financeiros na inicialização
+   */
   useEffect(() => {
     (async () => {
       try {
@@ -163,6 +214,13 @@ export default function Financeiro() {
     })();
   }, [navigate]);
 
+  // ========================================
+  // FUNÇÕES DE DADOS
+  // ========================================
+
+  /**
+   * Carrega dados financeiros do backend
+   */
   async function loadFinancialData() {
     try {
       const res = await api.get('/financeiro/data');
@@ -173,6 +231,13 @@ export default function Financeiro() {
     }
   }
 
+  /**
+   * Salva valor de uma categoria/item em um mês específico
+   * @param {string} category - Categoria financeira
+   * @param {string} item - Item da categoria
+   * @param {number} month - Mês (0-11)
+   * @param {number} value - Valor a salvar
+   */
   async function saveValue(category, item, month, value) {
     try {
       const key = `${selectedYear}-${month}`;
@@ -196,34 +261,57 @@ export default function Financeiro() {
     }
   }
 
+  /**
+   * Obtém valor de uma categoria/item em um mês
+   * @returns {number} Valor armazenado ou 0
+   */
   function getValue(category, item, month) {
     const key = `${selectedYear}-${month}`;
     return financialData?.[key]?.[category]?.[item] || 0;
   }
 
+  /**
+   * Calcula total de uma categoria em um mês
+   * @returns {number} Soma de todos os itens da categoria
+   */
   function getTotalByCategory(category, month) {
     const key = `${selectedYear}-${month}`;
     const categoryData = financialData?.[key]?.[category] || {};
     return Object.values(categoryData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
   }
 
+  /**
+   * Total de receitas do mês
+   */
   function getTotalReceitas(month) {
     return getTotalByCategory('receitas', month);
   }
 
+  /**
+   * Total de investimentos do mês
+   */
   function getTotalInvestimentos(month) {
     return getTotalByCategory('investimentos', month);
   }
 
+  /**
+   * Total de despesas do mês (soma de todas as categorias de gasto)
+   */
   function getTotalDespesas(month) {
     const categories = ['moradia', 'transporte', 'saude', 'educacao', 'alimentacao', 'lazer', 'cuidados'];
     return categories.reduce((sum, cat) => sum + getTotalByCategory(cat, month), 0);
   }
 
+  /**
+   * Calcula saldo do mês (receitas - investimentos - despesas)
+   */
   function getSaldo(month) {
     return getTotalReceitas(month) - getTotalInvestimentos(month) - getTotalDespesas(month);
   }
 
+  /**
+   * Estatísticas mensais (memoizadas para performance)
+   */
   const monthlyStats = useMemo(() => {
     const stats = MONTHS.map((_, idx) => ({
       month: idx,

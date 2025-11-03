@@ -1,3 +1,31 @@
+/**
+ * Configurações - Pomociclo
+ * ==========================
+ * 
+ * Página de configurações do usuário e da aplicação.
+ * Permite personalizar timer, sons, perfil e conta.
+ * 
+ * Funcionalidades:
+ * - Configuração de durações do Pomodoro
+ *   * Tempo de estudo (padrão: 50min)
+ *   * Pausa curta (padrão: 10min)
+ *   * Pausa longa (padrão: 30min)
+ *   * Intervalo para pausa longa (padrão: 4 blocos)
+ * 
+ * - Personalização de sons
+ *   * 10 opções de notificação
+ *   * Controle de ativação
+ *   * Duração do som
+ *   * Teste de áudio
+ * 
+ * - Gerenciamento de perfil
+ *   * Alteração de nickname (30 dias de cooldown)
+ *   * Exclusão de conta
+ * 
+ * - Integração com backend
+ *   * Salvamento automático
+ *   * Feedback visual
+ */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -20,8 +48,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Footer from '../components/Footer';
-// Sons disponÃ­veis
-// Sons disponíveis
+
+// ============================================================
+// CONSTANTES
+// ============================================================
+
+/**
+ * Opções de sons de notificação disponíveis
+ * Cada som possui ID e nome descritivo com emoji
+ */
 const SOUND_OPTIONS = [
   { id: 'bell',    name: '🔔 Sino' },
   { id: 'chime',   name: '🎶 Melodia' },
@@ -35,11 +70,21 @@ const SOUND_OPTIONS = [
   { id: 'zen',     name: '🧘 Zen' },
 ];
 
+// ============================================================
+// COMPONENTE PRINCIPAL - SETTINGS
+// ============================================================
 
+/**
+ * Página de configurações do aplicativo
+ * Gerencia preferências de timer, sons e perfil
+ */
 export default function Settings() {
   const navigate = useNavigate();
 
+  // Estados do usuário
   const [user, setUser] = useState(null);
+  
+  // Configurações do timer e sons
   const [settings, setSettings] = useState({ 
     study_duration: 50, 
     break_duration: 10,
@@ -50,15 +95,25 @@ export default function Settings() {
     sound_duration: 2
   });
 
+  // Estados de perfil
   const [nickname, setNickname] = useState('');
   const [tag, setTag] = useState('');
 
+  // Estados de controle de alteração de nickname
   const [canChangeNickname, setCanChangeNickname] = useState(true);
   const [daysUntilChange, setDaysUntilChange] = useState(0);
 
+  // Estados de UI
   const [loading, setLoading] = useState(true);
   const [playingSound, setPlayingSound] = useState(false);
 
+  // ========================================
+  // CARREGAMENTO INICIAL
+  // ========================================
+
+  /**
+   * Carrega dados do usuário e configurações na montagem
+   */
   useEffect(() => {
     let alive = true;
 
@@ -117,6 +172,13 @@ export default function Settings() {
     return () => { alive = false; };
   }, [navigate]);
 
+  // ========================================
+  // FUNÇÕES DE SALVAMENTO
+  // ========================================
+
+  /**
+   * Salva configurações do timer e sons no backend
+   */
   async function handleSaveSettings() {
     try {
       await api.post('/settings', settings);
@@ -126,6 +188,10 @@ export default function Settings() {
     }
   }
 
+  /**
+   * Altera nickname do usuário
+   * Aplica cooldown de 60 dias entre mudanças
+   */
   async function handleChangeNickname() {
     if (!canChangeNickname) {
       toast.error(`Você poderá alterar novamente em ${daysUntilChange} dias`);

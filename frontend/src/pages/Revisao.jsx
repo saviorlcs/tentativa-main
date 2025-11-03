@@ -1,4 +1,18 @@
-// src/pages/Revisao.jsx
+/**
+ * Sistema de Revisão - Pomociclo
+ * ===============================
+ * 
+ * Sistema de revisão espaçada baseado na Curva de Ebbinghaus.
+ * Gerencia matérias de revisão com intervalos otimizados.
+ * 
+ * Funcionalidades:
+ * - Criação de matérias de revisão
+ * - Modo normal ou intensivo (com data de prova)
+ * - Intervalos de revisão automáticos
+ * - Acompanhamento de sessões realizadas
+ * - Alertas de revisões atrasadas
+ * - Vinculação com matérias do ciclo
+ */
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import Header from "@/components/Header";
@@ -22,16 +36,26 @@ import {
   Target,
 } from "lucide-react";
 import Footer from '../components/Footer';
-export default function Revisao() {
-  const [user, setUser] = useState(null);
-  const [subjects, setSubjects] = useState([]); // matérias de revisão
-  const [cycleSubjects, setCycleSubjects] = useState([]); // matérias do ciclo (para vincular)
-  const [upcoming, setUpcoming] = useState([]); // próximas revisões
-  const [overdue, setOverdue] = useState([]); // revisões atrasadas
-  const [expandedSubject, setExpandedSubject] = useState(null); // matéria expandida para ver sessões
-  const [subjectSessions, setSubjectSessions] = useState(null); // sessões da matéria expandida
 
-  // Criar nova matéria
+/**
+ * Componente principal de Revisão
+ * Gerencia estado e coordena CRUD de matérias de revisão
+ */
+export default function Revisao() {
+  // Estado do usuário
+  const [user, setUser] = useState(null);
+  
+  // Listas de dados
+  const [subjects, setSubjects] = useState([]); // Matérias de revisão
+  const [cycleSubjects, setCycleSubjects] = useState([]); // Matérias do ciclo (para vincular)
+  const [upcoming, setUpcoming] = useState([]); // Próximas revisões
+  const [overdue, setOverdue] = useState([]); // Revisões atrasadas
+  
+  // Estados de visualização detalhada
+  const [expandedSubject, setExpandedSubject] = useState(null); // Matéria expandida
+  const [subjectSessions, setSubjectSessions] = useState(null); // Sessões da matéria expandida
+
+  // Estados de criação de nova matéria
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newArea, setNewArea] = useState("");
@@ -39,14 +63,21 @@ export default function Revisao() {
   const [newExamDate, setNewExamDate] = useState("");
   const [newCycleSubject, setNewCycleSubject] = useState("");
 
-  // Editar matéria
+  // Estados de edição de matéria
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editArea, setEditArea] = useState("");
   const [editMode, setEditMode] = useState("normal");
   const [editExamDate, setEditExamDate] = useState("");
 
-  // Carregar sessões de uma matéria específica
+  // ========================================
+  // FUNÇÕES DE CARREGAMENTO
+  // ========================================
+
+  /**
+   * Carrega sessões de uma matéria específica
+   * @param {string} subjectId - ID da matéria
+   */
  // Carregar sessões de uma matéria específica
 async function loadSubjectSessions(subjectId) {
   try {

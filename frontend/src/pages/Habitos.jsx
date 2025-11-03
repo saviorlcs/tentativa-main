@@ -1,4 +1,31 @@
-// src/pages/Habitos.jsx
+/**
+ * Hábitos - Sistema de Rastreamento de Hábitos
+ * =============================================
+ * 
+ * Sistema completo de gestão e acompanhamento de hábitos.
+ * Baseado em gamificação e psicologia comportamental.
+ * 
+ * Funcionalidades:
+ * - Criação de hábitos personalizados
+ * - Múltiplas frequências:
+ *   * Diária (todos os dias)
+ *   * Semanal (X vezes por semana)
+ *   * Mensal (X vezes por mês)
+ *   * Personalizada (dias específicos da semana)
+ * 
+ * - Acompanhamento:
+ *   * Sequência atual (streak)
+ *   * Melhor sequência (best streak)
+ *   * Total de completações
+ *   * Histórico completo
+ *   * Taxa de conclusão
+ * 
+ * - Gamificação:
+ *   * Ícone de fogo para streaks
+ *   * Cores por status
+ *   * Feedback visual imediato
+ *   * Estatísticas motivacionais
+ */
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import Header from "@/components/Header";
@@ -20,6 +47,14 @@ import {
   Flame,
 } from "lucide-react";
 import Footer from '../components/Footer';
+
+// ============================================================
+// CONSTANTES
+// ============================================================
+
+/**
+ * Frequências de hábitos disponíveis
+ */
 const FREQUENCIES = [
   { value: "daily", label: "📅 Diário" },
   { value: "weekly", label: "📆 Semanal" },
@@ -27,6 +62,9 @@ const FREQUENCIES = [
   { value: "custom", label: "⚙️ Personalizado" },
 ];
 
+/**
+ * Dias da semana para hábitos personalizados
+ */
 const WEEKDAYS = [
   { value: 1, label: "Seg" },
   { value: 2, label: "Ter" },
@@ -37,12 +75,29 @@ const WEEKDAYS = [
   { value: 0, label: "Dom" },
 ];
 
+// ============================================================
+// FUNÇÕES AUXILIARES
+// ============================================================
+
+/**
+ * Formata número de dias em texto legível
+ * @param {number} days - Número de dias
+ * @returns {string} - Texto formatado
+ */
 function formatStreak(days) {
   if (days === 0) return "Sem sequência";
   if (days === 1) return "1 dia";
   return `${days} dias`;
 }
 
+// ============================================================
+// COMPONENTES
+// ============================================================
+
+/**
+ * HabitCard - Card individual de hábito
+ * Exibe informações, controles e estatísticas do hábito
+ */
 function HabitCard({ habit, onToggle, onEdit, onDelete, onViewHistory }) {
   const today = new Date().toISOString().slice(0, 10);
   const isCompletedToday = habit.completions?.some((c) => c.date === today);
@@ -128,6 +183,10 @@ function HabitCard({ habit, onToggle, onEdit, onDelete, onViewHistory }) {
   );
 }
 
+/**
+ * HabitHistory - Modal de histórico de hábito
+ * Exibe últimos 30 dias com marcações visuais
+ */
 function HabitHistory({ habit, onClose }) {
   const last30Days = [];
   for (let i = 29; i >= 0; i--) {

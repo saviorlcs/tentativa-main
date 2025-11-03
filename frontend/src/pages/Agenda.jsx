@@ -1,4 +1,19 @@
-// src/pages/AgendaNew.jsx - Agenda Melhorada com Sistema de Aulas
+/**
+ * Agenda - Sistema de Calendário e Eventos
+ * =========================================
+ * 
+ * Gerenciamento completo de eventos, aulas e compromissos.
+ * Inclui visualização em calendário mensal e timeline diária.
+ * 
+ * Funcionalidades:
+ * - Calendário mensal interativo
+ * - Timeline de 6h às 23h
+ * - Tipos de eventos: Aula, Estudo, Revisão, Outro
+ * - Sistema de repetição (diário, semanal, mensal, etc.)
+ * - Detecção de conflitos com sugestão de horários
+ * - Checklist por evento
+ * - Vinculação com matérias do ciclo
+ */
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import Header from "@/components/Header";
@@ -23,10 +38,29 @@ import {
   Brain,
 } from "lucide-react";
 import Footer from '../components/Footer';
-/* ===================== helpers ===================== */
+
+// ============================================================
+// UTILITÁRIOS E CONSTANTES
+// ============================================================
+
+/**
+ * Formata número com zero à esquerda
+ * @param {number} n - Número a ser formatado
+ * @returns {string} - Número formatado (ex: 9 -> "09")
+ */
 const pad2 = (n) => String(n).padStart(2, "0");
+
+/**
+ * Converte objeto Date para formato ISO (YYYY-MM-DD)
+ * @param {Date} d - Data a ser convertida
+ * @returns {string} - Data em formato ISO
+ */
 const toISODate = (d) => d.toISOString().slice(0, 10);
 
+/**
+ * Tipos de eventos disponíveis no sistema
+ * Cada tipo possui cor e ícone específicos
+ */
 const EVENT_TYPES = [
   { value: "class", label: "🎓 Aula", color: "#3b82f6", icon: GraduationCap },
   { value: "study", label: "📚 Estudo", color: "#10b981", icon: BookOpen },
@@ -34,7 +68,14 @@ const EVENT_TYPES = [
   { value: "other", label: "📝 Outro", color: "#6b7280", icon: CalIcon },
 ];
 
-/* ===================== HourPicker ===================== */
+// ============================================================
+// COMPONENTES AUXILIARES
+// ============================================================
+
+/**
+ * HourPicker - Seletor de horário (hora:minuto)
+ * Permite ajuste separado de horas (0-23) e minutos (0-59)
+ */
 function HourPicker({ value, onChange }) {
   const [hh, mm] = (value || "00:00").split(":");
   return (
@@ -60,7 +101,14 @@ function HourPicker({ value, onChange }) {
   );
 }
 
-/* ===================== MonthGrid (calendário mensal) ===================== */
+/**
+ * buildMonthMatrix - Constrói matriz de dias do mês
+ * @param {Date} date - Data de referência
+ * @returns {Array<Array<number|null>>} - Matriz 7 colunas (semanas)
+ * 
+ * Preenche com null os dias vazios no início e fim
+ * Semana começa na segunda-feira
+ */
 function buildMonthMatrix(date) {
   const first = new Date(date.getFullYear(), date.getMonth(), 1);
   const startWeekday = (first.getDay() + 6) % 7; // seg=0
@@ -76,6 +124,15 @@ function buildMonthMatrix(date) {
   return weeks;
 }
 
+/**
+ * MonthGrid - Calendário mensal interativo
+ * Exibe grid 7x6 com navegação entre meses
+ * 
+ * Features:
+ * - Indicadores visuais de eventos por dia
+ * - Destaque para dia atual
+ * - Seleção de dia
+ */
 function MonthGrid({ valueISO, onChange, monthSummary = {} }) {
   const sel = new Date(`${valueISO}T00:00:00`);
   const view = new Date(sel.getFullYear(), sel.getMonth(), 1);
@@ -158,7 +215,15 @@ function MonthGrid({ valueISO, onChange, monthSummary = {} }) {
   );
 }
 
-/* ===================== DayTimeline (linhas por hora) ===================== */
+/**
+ * DayTimeline - Visualização temporal do dia
+ * Timeline de 6h às 23h com eventos posicionados
+ * 
+ * Features:
+ * - Eventos em escala temporal real
+ * - Cores por tipo e matéria
+ * - Marcador visual de eventos completos
+ */
 function DayTimeline({ events = [], subjects = [] }) {
   const startMin = 6 * 60;
   const endMin = 23 * 60;
@@ -233,7 +298,14 @@ function DayTimeline({ events = [], subjects = [] }) {
   );
 }
 
-/* ===================== Página Agenda ===================== */
+// ============================================================
+// COMPONENTE PRINCIPAL - AGENDA
+// ============================================================
+
+/**
+ * Agenda - Página principal do sistema de calendário
+ * Gerencia estado global e coordena subcomponentes
+ */
 export default function Agenda() {
   const [user, setUser] = useState(null);
 
@@ -251,26 +323,37 @@ export default function Agenda() {
   const [eventType, setEventType] = useState("other");
   const [creating, setCreating] = useState(false);
   
-  // Periodicidade
+  // Estados de periodicidade
   const [recurrenceType, setRecurrenceType] = useState("once");
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
   const [recurrenceUntil, setRecurrenceUntil] = useState("");
   const [recurrenceCount, setRecurrenceCount] = useState("");
 
-  // edição
+  // Estados de edição
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editSubject, setEditSubject] = useState("");
 
+  // Data selecionada como objeto Date (memoizado)
   const dateObj = useMemo(() => new Date(`${selectedDate}T00:00:00`), [selectedDate]);
 
+  /**
+   * Navega entre dias (anterior/próximo)
+   * @param {number} delta - Número de dias (+1 ou -1)
+   */
   function moveDay(delta) {
     const d = new Date(`${selectedDate}T00:00:00`);
     d.setDate(d.getDate() + delta);
     setSelectedDate(toISODate(d));
   }
 
-  /* -------- carregar user e matérias -------- */
+  // ========================================
+  // CARREGAMENTO DE DADOS
+  // ========================================
+
+  /**
+   * Carrega usuário e matérias na inicialização
+   */
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -288,7 +371,9 @@ export default function Agenda() {
     };
   }, []);
 
-  /* -------- buscar eventos do dia -------- */
+  /**
+   * Busca eventos do dia selecionado
+   */
   async function fetchDay() {
     try {
       const res = await api.get("/calendar/day", { params: { date_iso: selectedDate } });
@@ -302,7 +387,10 @@ export default function Agenda() {
     fetchDay();
   }, [selectedDate]);
 
-  /* -------- resumo do mês -------- */
+  /**
+   * Busca resumo mensal (contadores de eventos por dia)
+   * @param {string} iso - Data no formato ISO (YYYY-MM-DD)
+   */
   async function fetchMonthSummary(iso) {
     const d = new Date(`${iso}T00:00:00`);
     const y = d.getFullYear();
@@ -321,7 +409,14 @@ export default function Agenda() {
     fetchMonthSummary(selectedDate);
   }, [selectedDate]);
 
-  /* -------- criar evento -------- */
+  // ========================================
+  // CRUD DE EVENTOS
+  // ========================================
+
+  /**
+   * Cria novo evento com verificação de conflitos
+   * Suporta eventos únicos ou recorrentes
+   */
   async function handleCreate() {
     if (!title.trim()) {
       toast.info("Dê um título ao evento 🙏");
@@ -427,7 +522,10 @@ export default function Agenda() {
     }
   }
 
-  /* -------- deletar -------- */
+  /**
+   * Remove evento por ID
+   * @param {string} id - ID do evento
+   */
   async function handleDelete(id) {
     try {
       await api.delete(`/calendar/event/${id}`);
@@ -439,13 +537,20 @@ export default function Agenda() {
     }
   }
 
-  /* -------- editar -------- */
+  /**
+   * Inicia modo de edição de evento
+   * @param {Object} ev - Objeto do evento
+   */
   function startEdit(ev) {
     setEditingId(ev.id);
     setEditTitle(ev.title);
     setEditSubject(ev.subject_id || "");
   }
 
+  /**
+   * Salva edição do evento
+   * @param {string} id - ID do evento
+   */
   async function saveEdit(id) {
     try {
       await api.patch(`/calendar/event/${id}`, {
@@ -461,7 +566,14 @@ export default function Agenda() {
     }
   }
 
-  /* -------- checklist -------- */
+  // ========================================
+  // GERENCIAMENTO DE CHECKLIST
+  // ========================================
+
+  /**
+   * Adiciona item ao checklist do evento
+   * @param {string} id - ID do evento
+   */
   async function addChecklistItem(id) {
     const text = prompt("Novo item do checklist:");
     if (!text || !text.trim()) return;
@@ -473,6 +585,11 @@ export default function Agenda() {
     }
   }
 
+  /**
+   * Marca/desmarca item do checklist
+   * @param {string} id - ID do evento
+   * @param {string} itemId - ID do item do checklist
+   */
   async function toggleChecklist(id, itemId) {
     try {
       await api.post(`/calendar/event/${id}/checklist/${itemId}/toggle`);
@@ -488,7 +605,10 @@ export default function Agenda() {
     }
   }
 
-  /* ===================== render ===================== */
+  // ========================================
+  // RENDERIZAÇÃO
+  // ========================================
+
   return (
     <div
       className="min-h-screen bg-gradient-to-br from-slate-950 via-gray-900 to-slate-950"
