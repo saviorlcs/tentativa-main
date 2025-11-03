@@ -15,6 +15,13 @@ Módulos disponíveis:
 - groups: CRUD de grupos e membros
 - rankings: Rankings global, amigos e grupos
 - friends: Sistema de amizades
+- review: Sistema de revisão espaçada
+- habits: Sistema de hábitos diários
+- devocional: Plano e progresso devocional
+- financeiro: Gerenciamento financeiro
+- rewards: Bônus e recompensas
+- stats: Estatísticas do usuário
+- admin: Rotas administrativas
 """
 
 # Importa todos os routers para facilitar o acesso
@@ -31,7 +38,14 @@ from . import (
     calendar,
     groups,
     rankings,
-    friends
+    friends,
+    review,
+    habits,
+    devocional,
+    financeiro,
+    rewards,
+    stats,
+    admin
 )
 
 __all__ = [
@@ -47,5 +61,12 @@ __all__ = [
     "calendar",
     "groups",
     "rankings",
-    "friends"
+    "friends",
+    "review",
+    "habits",
+    "devocional",
+    "financeiro",
+    "rewards",
+    "stats",
+    "admin"
 ]
