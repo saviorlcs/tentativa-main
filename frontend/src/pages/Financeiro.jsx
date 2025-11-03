@@ -246,14 +246,14 @@ export default function Financeiro() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-xl text-white">Carregando...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-transparent" style={{ fontFamily: 'Inter, sans-serif' }}>
       <Header user={user} />
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">

@@ -27,37 +27,37 @@ const FREE_COLOR_SCHEMES = [
   {
     id: 'midnight-purple',
     name: 'Midnight Purple',
-    description: 'Roxo escuro elegante',
+    description: 'Roxo suave elegante',
     dataTheme: 'midnight-purple',
-    gradient: 'from-purple-400 to-violet-500',
+    gradient: 'from-purple-300 to-violet-400',
   },
   {
     id: 'deep-ocean',
     name: 'Deep Ocean',
-    description: 'Azuis profundos marinhos',
+    description: 'Azuis suaves marinhos',
     dataTheme: 'deep-ocean',
-    gradient: 'from-blue-400 to-sky-400',
+    gradient: 'from-blue-300 to-sky-300',
   },
   {
     id: 'forest-night',
     name: 'Forest Night',
-    description: 'Verdes escuros naturais',
+    description: 'Verdes suaves naturais',
     dataTheme: 'forest-night',
-    gradient: 'from-emerald-400 to-green-400',
+    gradient: 'from-emerald-300 to-green-300',
   },
   {
     id: 'warm-ember',
     name: 'Warm Ember',
-    description: 'Laranjas e vermelhos quentes',
+    description: 'Laranjas suaves e quentes',
     dataTheme: 'warm-ember',
-    gradient: 'from-orange-400 to-amber-400',
+    gradient: 'from-orange-300 to-amber-300',
   },
   {
     id: 'rose-twilight',
     name: 'Rose Twilight',
     description: 'Rosas e magentas suaves',
     dataTheme: 'rose-twilight',
-    gradient: 'from-pink-400 to-rose-400',
+    gradient: 'from-pink-300 to-rose-300',
   },
 ];
 
@@ -212,7 +212,7 @@ export default function Appearance() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900">
+      <div className="min-h-screen bg-transparent">
         <Header user={user} />
         <div className="container mx-auto px-4 py-8">
           <p className="text-center text-gray-400">Carregando...</p>
@@ -222,7 +222,7 @@ export default function Appearance() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900">
+    <div className="min-h-screen bg-transparent">
       <Header user={user} />
 
       <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -367,7 +367,7 @@ export default function Appearance() {
                   {/* Preview de cores usando gradiente */}
                   <div className="flex gap-2">
                     <div
-                      className={`flex-1 h-12 rounded-lg border border-white/20 shadow-lg bg-gradient-to-r ${scheme.gradient}`}
+                      className={`theme-preview-protect flex-1 h-12 rounded-lg border border-white/20 shadow-lg bg-gradient-to-r ${scheme.gradient}`}
                       title="Preview do tema"
                     />
                   </div>

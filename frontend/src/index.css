@@ -103,11 +103,11 @@ body[data-theme="midnight-purple"],
 [data-theme="midnight-purple"] {
   --bg:#0e0a1a !important;
   --surface:#1a1229 !important;
-  --primary:#a78bfa !important;
-  --accent:#c084fc !important;
-  --text:#e9d5ff !important;
-  --app-border: rgba(167,139,250,.30) !important;
-  --app-glow: 0 0 8px rgba(167,139,250,.08) !important;
+  --primary:#9d7fd6 !important;
+  --accent:#b794e8 !important;
+  --text:#e5e7eb !important;
+  --app-border: rgba(157,127,214,.20) !important;
+  --app-glow: 0 0 6px rgba(157,127,214,.05) !important;
 }
 
 /* Tema 2: Deep Ocean (GRATUITO) */
@@ -116,11 +116,11 @@ body[data-theme="deep-ocean"],
 [data-theme="deep-ocean"] {
   --bg:#0a1018 !important;
   --surface:#0c1a2e !important;
-  --primary:#0ea5e9 !important;
-  --accent:#38bdf8 !important;
-  --text:#dbeafe !important;
-  --app-border: rgba(14,165,233,.32) !important;
-  --app-glow: 0 0 8px rgba(14,165,233,.10) !important;
+  --primary:#4daddb !important;
+  --accent:#6fbee3 !important;
+  --text:#e5e7eb !important;
+  --app-border: rgba(77,173,219,.20) !important;
+  --app-glow: 0 0 6px rgba(77,173,219,.05) !important;
 }
 
 /* Tema 3: Forest Night (GRATUITO) */
@@ -129,11 +129,11 @@ body[data-theme="forest-night"],
 [data-theme="forest-night"] {
   --bg:#0a120f !important;
   --surface:#0f1e19 !important;
-  --primary:#10b981 !important;
-  --accent:#34d399 !important;
-  --text:#d1fae5 !important;
-  --app-border: rgba(16,185,129,.30) !important;
-  --app-glow: 0 0 8px rgba(16,185,129,.08) !important;
+  --primary:#5db892 !important;
+  --accent:#7dcba8 !important;
+  --text:#e5e7eb !important;
+  --app-border: rgba(93,184,146,.20) !important;
+  --app-glow: 0 0 6px rgba(93,184,146,.05) !important;
 }
 
 /* Tema 4: Warm Ember (GRATUITO) */
@@ -142,11 +142,11 @@ body[data-theme="warm-ember"],
 [data-theme="warm-ember"] {
   --bg:#1a0e0a !important;
   --surface:#2d1712 !important;
-  --primary:#f97316 !important;
-  --accent:#fb923c !important;
-  --text:#fed7aa !important;
-  --app-border: rgba(249,115,22,.30) !important;
-  --app-glow: 0 0 10px rgba(249,115,22,.10) !important;
+  --primary:#e89563 !important;
+  --accent:#f0a97d !important;
+  --text:#e5e7eb !important;
+  --app-border: rgba(232,149,99,.20) !important;
+  --app-glow: 0 0 6px rgba(232,149,99,.05) !important;
 }
 
 /* Tema 5: Rose Twilight (GRATUITO) */
@@ -155,11 +155,11 @@ body[data-theme="rose-twilight"],
 [data-theme="rose-twilight"] {
   --bg:#1a0a14 !important;
   --surface:#2d1220 !important;
-  --primary:#ec4899 !important;
-  --accent:#f472b6 !important;
-  --text:#fce7f3 !important;
-  --app-border: rgba(236,72,153,.32) !important;
-  --app-glow: 0 0 8px rgba(236,72,153,.10) !important;
+  --primary:#e37db3 !important;
+  --accent:#ed95c4 !important;
+  --text:#e5e7eb !important;
+  --app-border: rgba(227,125,179,.20) !important;
+  --app-glow: 0 0 6px rgba(227,125,179,.05) !important;
 }
 
 /* ============================================ */
@@ -260,71 +260,76 @@ body[data-theme="crimson-night"],
 /*       APLICAÇÃO DOS ESTILOS                */
 /* ============================================ */
 
-/* superfícies que respeitam o "preset" de borda */
+/* superfícies mantêm cor base, apenas bordas recebem tint do tema */
 .app-surface{
-  background: color-mix(in oklab, var(--surface) 86%, transparent);
+  background: rgba(15, 23, 42, 0.86);
   border-radius: var(--app-radius);
   border: var(--app-border-w) solid var(--app-border);
   box-shadow: var(--app-glow);
   transition: all 0.3s ease;
 }
 
-/* exemplo – corpo usa as cores do tema */
+/* Quando tema ativo, cards recebem tint mais visível da cor do tema */
+html[data-theme] .app-surface,
+body[data-theme] .app-surface {
+  background: color-mix(in oklab, var(--primary) 12%, rgba(15, 23, 42, 0.86));
+  border-color: color-mix(in oklab, var(--primary) 30%, rgba(148,163,184,.35));
+  box-shadow: 0 0 10px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+
+/* Corpo usa fundo escuro padrão, temas apenas adicionam tint sutil */
 body{
   background:
-    radial-gradient(1000px circle at 20% -10%, var(--surface), transparent 60%),
-    linear-gradient(180deg, var(--bg), color-mix(in oklab, var(--bg) 80%, black)) !important;
-  color: var(--text) !important;
+    radial-gradient(1000px circle at 20% -10%, #0f172a, transparent 60%),
+    linear-gradient(180deg, #0b1220, #000000) !important;
+  color: #e5e7eb !important;
   transition: background 0.5s ease, color 0.3s ease;
 }
 
-/* Garante que elementos com bg/text usam as variáveis do tema */
+/* Quando um tema está ativo, adiciona tint visível mas equilibrado */
 html[data-theme] body,
 body[data-theme] {
   background:
-    radial-gradient(1000px circle at 20% -10%, var(--surface), transparent 60%),
-    linear-gradient(180deg, var(--bg), color-mix(in oklab, var(--bg) 80%, black)) !important;
-  color: var(--text) !important;
+    radial-gradient(1000px circle at 20% -10%, color-mix(in oklab, var(--primary) 30%, #0f172a), transparent 60%),
+    linear-gradient(180deg, color-mix(in oklab, var(--primary) 25%, #0b1220), color-mix(in oklab, var(--primary) 12%, #000000)) !important;
+  color: #e5e7eb !important;
 }
 
-/* CRITICAL FIX: Sobrescreve classes Tailwind hardcoded com variáveis do tema */
-html[data-theme] *[class*="bg-slate-900"],
-html[data-theme] *[class*="bg-gray-900"],
-body[data-theme] *[class*="bg-slate-900"],
-body[data-theme] *[class*="bg-gray-900"] {
-  background-color: var(--bg) !important;
-}
-
-html[data-theme] *[class*="bg-slate-800"],
-html[data-theme] *[class*="bg-gray-800"],
-body[data-theme] *[class*="bg-slate-800"],
-body[data-theme] *[class*="bg-gray-800"] {
-  background-color: var(--surface) !important;
-}
-
-html[data-theme] *[class*="text-cyan"],
-html[data-theme] *[class*="from-cyan"],
-html[data-theme] *[class*="to-cyan"],
-html[data-theme] *[class*="border-cyan"],
-body[data-theme] *[class*="text-cyan"],
-body[data-theme] *[class*="from-cyan"],
-body[data-theme] *[class*="to-cyan"],
-body[data-theme] *[class*="border-cyan"] {
+/* Aplica cores do tema em textos e elementos de destaque (títulos, badges, ícones cyan) */
+html[data-theme] .text-cyan-400,
+html[data-theme] .text-cyan-500,
+html[data-theme] *[class*="text-cyan"]:not(.theme-preview-protect) {
   color: var(--primary) !important;
+}
+
+html[data-theme] .from-cyan-400,
+html[data-theme] .from-cyan-500,
+html[data-theme] *[class*="from-cyan"]:not(.theme-preview-protect) {
+  --tw-gradient-from: var(--primary) !important;
+}
+
+html[data-theme] .to-cyan-400,
+html[data-theme] .to-cyan-500,
+html[data-theme] *[class*="to-cyan"]:not(.theme-preview-protect) {
+  --tw-gradient-to: var(--primary) !important;
+}
+
+/* Bordas cyan mudam para cor do tema */
+html[data-theme] .border-cyan-400,
+html[data-theme] .border-cyan-500,
+html[data-theme] *[class*="border-cyan"]:not(.theme-preview-protect) {
   border-color: var(--primary) !important;
 }
 
-html[data-theme] *[class*="bg-cyan"],
-body[data-theme] *[class*="bg-cyan"] {
+/* Backgrounds cyan mudam (para botões principais, badges) */
+html[data-theme] .bg-cyan-600:not(.theme-preview-protect),
+html[data-theme] .bg-cyan-500:not(.theme-preview-protect) {
   background-color: var(--primary) !important;
 }
 
-/* Sobrescreve gradientes com cores primárias */
-html[data-theme] *[class*="bg-gradient-to"],
-body[data-theme] *[class*="bg-gradient-to"] {
-  --tw-gradient-from: var(--primary) !important;
-  --tw-gradient-to: var(--accent) !important;
-}
+/* Tema afeta apenas o background geral, não componentes específicos */
+/* Removidas as regras agressivas que sobrescreviam TODAS as cores */
+/* Agora cada componente mantém suas cores próprias, apenas o fundo muda */
 
 /* Animação auraPulse com intensidade variável */
 @keyframes auraPulse {

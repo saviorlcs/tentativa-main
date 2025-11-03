@@ -1283,7 +1283,7 @@ const resetCycle = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-white text-xl">Carregando...</div>
       </div>
     );
@@ -1294,7 +1294,7 @@ const resetCycle = () => {
   const phaseColor = currentPhase === 'study' ? '#22d3ee' : currentPhase === 'long_break' ? '#a855f7' : '#22c55e';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="min-h-screen bg-transparent text-white">
       <Header />
 
       <div className="container mx-auto px-4 py-6 max-w-7xl">
